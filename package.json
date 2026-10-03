@@ -1,0 +1,8 @@
+{
+  "name": "bpl20",
+  "version": "0.0.1",
+  "description": "BPL20: experimental token protocol on Bitcoin (draft, nothing live)",
+  "license": "MIT",
+  "scripts": { "build": "tsc" },
+  "devDependencies": { "typescript": "^5.4.0" }
+}
