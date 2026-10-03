@@ -3,6 +3,19 @@
   "version": "0.0.1",
   "description": "BPL20: experimental token protocol on Bitcoin (draft, nothing live)",
   "license": "MIT",
-  "scripts": { "build": "tsc" },
-  "devDependencies": { "typescript": "^5.4.0" }
+  "author": "0xMertas",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xMertas/bpl20.git"
+  },
+  "bugs": {
+    "url": "https://github.com/0xMertas/bpl20/issues"
+  },
+  "homepage": "https://github.com/0xMertas/bpl20#readme",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
 }
