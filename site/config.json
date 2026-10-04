@@ -1,6 +1,6 @@
 {
   "network": "testnet4",
-  "tick": "ABCDE",
-  "siteName": "ABCDE claim",
+  "tick": "WOLDX",
+  "siteName": "WOLDX claim",
   "explorerNote": "Change network to \"mainnet\" only after you have tested everything end to end."
 }
