@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8">
+<style>
+ html,body{margin:0;background:#000}
+ #w{width:1600px;height:900px;background:#000;color:#d7ffd7;font:26px/1.5 "DejaVu Sans Mono","Courier New",monospace;padding:34px 48px;box-sizing:border-box;position:relative;overflow:hidden}
+ #bar{color:#777;font-size:20px;border-bottom:1px solid #222;padding-bottom:10px;margin-bottom:18px}
+ .d{color:#888}.g{color:#4ade80}.o{color:#f7931a}.w{color:#fff}.r{color:#ff6b6b}.c{color:#67e8f9}
+ pre{margin:0;font:inherit;white-space:pre}
+</style>
+<div id="w">
+<div id="bar">● ● ●  &nbsp; bash — atomic-claim</div>
+<pre><span class="g">$</span> <span class="w">npm test</span>
+<span class="g">✔</span> full sale, buyer is p2wpkh
+<span class="g">✔</span> full sale, buyer is p2tr
+<span class="g">✔</span> tampered price breaks the seller signature
+<span class="g">✔</span> needs 2 coins and enough funds
+<span class="g">✔</span> build-lots CLI skips bad / duplicate lots
+<span class="o"># pass 10   # fail 0</span>
+
+<span class="g">$</span> <span class="w">tx layout</span>  <span class="d">(one transaction, pay + receive)</span>
+<span class="c">  inputs                                  outputs</span>
+  [0] buyer dummy utxo            --->    [0] <span class="w">buyer</span>   dummy + inscription
+  [1] <span class="o">seller inscription utxo</span>     --->    [1] <span class="w">seller</span>  <span class="o">price</span>
+      <span class="d">SIGHASH_SINGLE|ANYONECANPAY</span>
+  [2] buyer payment utxo(s)       --->    [2] <span class="w">buyer</span>   change
+
+<span class="d">no backend · no custody · no keys · testnet first</span><span class="g">█</span></pre>
+</div>
