@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8">
+<style>
+ html,body{margin:0;background:#000}
+ #w{width:1600px;height:900px;position:relative;overflow:hidden;color:#fff;font-family:"DejaVu Sans","Helvetica Neue",Arial,sans-serif;
+    background:radial-gradient(ellipse at 85% 5%,#3a2205 0%,#120b02 36%,#000 72%)}
+ .grid{position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:64px 64px}
+ .tag{position:absolute;left:96px;top:72px;font:600 24px "DejaVu Sans Mono",monospace;color:#f7931a;border:2px solid #f7931a;padding:8px 18px;border-radius:999px;letter-spacing:2px}
+ h1{position:absolute;left:96px;top:140px;margin:0;font-size:84px;font-weight:800;letter-spacing:-2px}
+ h1 span{color:#f7931a}
+ .line{position:absolute;left:150px;right:150px;top:470px;height:4px;background:linear-gradient(90deg,#f7931a 0 28%,#333 28% 100%)}
+ .step{position:absolute;top:430px;width:260px;text-align:center}
+ .dot{width:44px;height:44px;border-radius:50%;margin:0 auto 26px;background:#1a1a1a;border:3px solid #444;box-sizing:border-box}
+ .done .dot{background:#f7931a;border-color:#f7931a;box-shadow:0 0 30px #f7931a88}
+ .now .dot{border-color:#f7931a;box-shadow:0 0 30px #f7931a55}
+ .step b{display:block;font-size:32px;margin-bottom:10px}
+ .step span{display:block;font-size:22px;color:#aab1bf;line-height:1.35}
+ .step i{display:block;font:600 18px "DejaVu Sans Mono",monospace;color:#7b8494;margin-top:12px;font-style:normal}
+ .done i{color:#4ade80}.now i{color:#f7931a}
+ .foot{position:absolute;left:96px;bottom:44px;right:96px;font:22px "DejaVu Sans Mono",monospace;color:#7b8494;line-height:1.5}
+</style>
+<div id="w"><div class="grid"></div>
+ <div class="tag">$XXXXX · BRC-20</div>
+ <h1>The road <span>ahead.</span></h1>
+ <div class="line"></div>
+ <div class="step done" style="left:96px"><div class="dot"></div><b>Build</b><span>Claim flow, tests, open-source code</span><i>DONE</i></div>
+ <div class="step now" style="left:392px"><div class="dot"></div><b>Testnet</b><span>Real wallet purchase, community testers</span><i>NEXT</i></div>
+ <div class="step" style="left:688px"><div class="dot"></div><b>Deploy</b><span>Ticker, supply and prices published first</span><i>PLANNED</i></div>
+ <div class="step" style="left:984px"><div class="dot"></div><b>Claim live</b><span>Pay and receive in one transaction</span><i>PLANNED</i></div>
+ <div class="step" style="left:1280px"><div class="dot"></div><b>Stats</b><span>Public supply and holder page</span><i>PLANNED</i></div>
+ <div class="foot">Roadmap, not a promise. No price targets. Nothing is live until announced.<br>I will never DM first or ask for your seed phrase.</div>
+</div>
