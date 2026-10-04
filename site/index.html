@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claim</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1 id="title">Claim</h1>
+  <div id="net"></div>
+  <div class="row">
+    <button id="connect">Connect UniSat</button>
+    <button id="prepare" class="ghost" title="Needed once if your wallet has only one coin">Prepare wallet</button>
+  </div>
+  <div id="lots">Loading...</div>
+  <div id="status"></div>
+  <small>
+    You pay and receive a BRC-20 transfer inscription in one transaction, signed in your own wallet.
+    Nobody ever needs your seed phrase or private key. This page never asks for one.
+    You need two separate coins in your wallet (press "Prepare wallet" if you have one).
+  </small>
+</main>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
