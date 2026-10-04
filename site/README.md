@@ -40,6 +40,13 @@ on top of the price. Set the price above your inscription cost or you lose money
 The transaction uses one small spare coin from the buyer. If their wallet has only one coin, the **Prepare wallet** button sends
 1000 sats to themselves; after 1 confirmation they can claim.
 
+## Token stats page
+
+`stats.html` shows supply, minted %, holders and top holders for your ticker (or `stats.html?tick=ordi`). It reads the free Hiro
+Ordinals indexer API, so it only works on **mainnet** and only after your deploy is indexed. It is not your own indexer. The response
+shape was written from Hiro's documented format and covered by fixture tests, but it was **not checked against the live API**
+(blocked in the build environment). Open it once after your mainnet deploy and tell me if anything looks wrong.
+
 ## Develop
 
 ```
