@@ -69,13 +69,15 @@ async function main() {
   };
   $("prepare").onclick = prepare;
 
+  $("disclosure").innerHTML = (cfg.disclosure ?? []).map((t) => `<p>${t.replace(/</g, "&lt;")}</p>`).join("");
   const lots: Lot[] = await (await fetch("lots.json", { cache: "no-store" })).json();
   const box = $("lots");
-  box.textContent = lots.length ? "" : "No lots for sale right now.";
+  box.textContent = lots.length ? "" : "No lots are available right now. Follow the official account for the next release.";
   for (const lot of lots) {
     const card = document.createElement("div");
     card.className = "lot";
-    card.innerHTML = `<b>${lot.amt} ${lot.tick}</b><span>${lot.price.toLocaleString()} sats</span>`;
+    const perTok = lot.price / Number(lot.amt);
+    card.innerHTML = `<b>${Number(lot.amt).toLocaleString()} ${lot.tick}</b><span>${lot.price.toLocaleString()} sats<span class="price-tok">${perTok.toFixed(perTok < 1 ? 3 : 1)} sats / token + network fee</span></span>`;
     const btn = document.createElement("button");
     btn.textContent = "Claim";
     btn.onclick = () => claim(lot);

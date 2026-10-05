@@ -1,6 +1,12 @@
 {
   "network": "testnet4",
-  "tick": "WOLDX",
-  "siteName": "WOLDX claim",
-  "explorerNote": "Change network to \"mainnet\" only after you have tested everything end to end."
+  "tick": "WORLDX",
+  "siteName": "WORLDX claim",
+  "explorerNote": "Change network to \"mainnet\" only after you have tested everything end to end.",
+  "maxSupply": "21000000",
+  "disclosure": [
+    "WORLDX is a self-mint BRC-20 token. The deployer minted the full 21,000,000 supply to their own wallet.",
+    "You do not mint it. You claim a lot that the deployer has prepared, and receive it in one transaction.",
+    "Supply for sale is released in lots. Check each lot's amount and price before you approve."
+  ]
 }

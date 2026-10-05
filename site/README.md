@@ -19,7 +19,7 @@ so the buyer can add their own coins and cannot change the price. Final transact
 
 ## Seller steps (all in your own wallet)
 
-1. Deploy the 5-letter self-mint ticker and mint the supply to your wallet.
+1. Deploy `WORLDX` (self-mint) and mint the supply to your wallet. Done. Confirm on UniSat's BRC-20 page that the token and your balance are shown by the indexer. WORLDX has 6 letters, so check that indexers recognise it before selling anything.
 2. Inscribe transfer inscriptions for each lot (e.g. 1000, 5000, 10000 tokens). Wait for them to confirm.
 3. Set `config.json` (`network`, `tick`). **Start with `testnet4`.**
 4. Serve this folder (`npx serve .` or GitHub Pages) and open `admin.html`. Connect UniSat, enter each lot's `txid:vout`,
@@ -29,6 +29,13 @@ so the buyer can add their own coins and cannot change the price. Final transact
 
 A lot sells once. The page hides sold lots by checking whether the coin is spent (free mempool.space API).
 Do **not** move a lot's coin yourself while it is listed, and keep it in the wallet you listed from.
+
+## Pricing a lot
+
+Your cost per lot is one transfer inscription (about 350 vB at your fee rate) plus 546 sats of postage that goes to the buyer.
+`price (sats) >= cost + profit`. Example at 5 sat/vB: cost ~2,300 sats, so a lot priced at 3,300 sats nets you ~1,000 sats.
+Cost depends on the **number of lots**, not tokens, so fewer, bigger lots earn more per token sold. Release lots in small batches
+so early sales fund the next inscriptions. The page shows buyers the price per token and states plainly that you hold the supply.
 
 ## Price must cover fees
 

@@ -1,6 +1,6 @@
 // Read-only chain data from the free mempool.space API, plus the UniSat chain names.
 export type NetName = "mainnet" | "testnet4" | "signet";
-export type Config = { network: NetName; tick: string; siteName: string };
+export type Config = { network: NetName; tick: string; siteName: string; maxSupply?: string; disclosure?: string[] };
 
 const API: Record<NetName, string> = {
   mainnet: "https://mempool.space/api",
