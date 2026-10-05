@@ -17808,7 +17808,9 @@ function buildListingPsbt(a) {
   if (k === "p2tr") real.tapInternalKey = xonly(a.sellerPubkeyHex);
   psbt.addInput(real);
   psbt.addOutput({ script, value: DUST });
-  psbt.addOutput({ address: a.seller, value: a.price });
+  const payTo = a.payTo?.trim() || a.seller;
+  bitcoin.address.toOutputScript(payTo, a.network);
+  psbt.addOutput({ address: payTo, value: a.price });
   return psbt;
 }
 function readWitness(w) {
@@ -17914,6 +17916,7 @@ async function sign() {
     const vout = Number(voutS);
     const price = Number($("price").value);
     const amt = $("amt").value.trim();
+    const payTo = $("payto").value.trim() || void 0;
     if (!/^[0-9a-f]{64}$/i.test(txid ?? "") || !Number.isInteger(vout)) throw new Error("Coin must look like txid:vout");
     if (!/^\d+$/.test(amt) || !Number.isInteger(price) || price <= 0) throw new Error("Check amount and price");
     const net = networkFor(cfg.network);
@@ -17925,7 +17928,8 @@ async function sign() {
       seller: me.address,
       sellerPubkeyHex: me.pubkeyHex,
       utxo: { txid, vout, value: out.value, scriptPk: out.scriptPk },
-      price
+      price,
+      payTo
     });
     say("Approve the signature in UniSat. It only signs the lot, it does not send anything.");
     const signedHex = await unisat().signPsbt(psbt.toHex(), {
@@ -17954,6 +17958,8 @@ async function main() {
       say(e?.message ?? String(e), true);
     }
   };
+  const cfgPay = cfg.payoutAddress;
+  if (cfgPay) $("payto").value = cfgPay;
   $("sign").onclick = sign;
   $("dl").onclick = () => {
     const a = document.createElement("a");

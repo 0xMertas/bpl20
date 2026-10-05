@@ -30,6 +30,12 @@ so the buyer can add their own coins and cannot change the price. Final transact
 A lot sells once. The page hides sold lots by checking whether the coin is spent (free mempool.space API).
 Do **not** move a lot's coin yourself while it is listed, and keep it in the wallet you listed from.
 
+## Payout wallet
+
+On `admin.html`, the **Payout address** field sets where buyers' payments go, so all profit lands in one wallet. It can differ from the wallet
+that holds the tokens (that wallet must still sign each lot). It is signed into the lot, so buyers cannot change it. Public address only.
+You can also set `"payoutAddress"` in `config.json` to prefill it.
+
 ## Pricing a lot
 
 Your cost per lot is one transfer inscription (about 350 vB at your fee rate) plus 546 sats of postage that goes to the buyer.

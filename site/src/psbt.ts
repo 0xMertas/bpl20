@@ -47,6 +47,7 @@ export function buildListingPsbt(a: {
   sellerPubkeyHex: string;
   utxo: OwnedUtxo;
   price: number;
+  payTo?: string; // where the buyer's payment goes; defaults to the seller address
 }): bitcoin.Psbt {
   const script = bitcoin.address.toOutputScript(a.seller, a.network);
   if (!script.equals(Buffer.from(a.utxo.scriptPk, "hex"))) {
@@ -68,7 +69,9 @@ export function buildListingPsbt(a: {
   if (k === "p2tr") real.tapInternalKey = xonly(a.sellerPubkeyHex);
   psbt.addInput(real);
   psbt.addOutput({ script, value: DUST }); // placeholder output 0
-  psbt.addOutput({ address: a.seller, value: a.price }); // output 1 = the payment, signed over
+  const payTo = a.payTo?.trim() || a.seller;
+  bitcoin.address.toOutputScript(payTo, a.network); // throws if the address is invalid for this network
+  psbt.addOutput({ address: payTo, value: a.price }); // output 1 = the payment, signed over
   return psbt;
 }
 

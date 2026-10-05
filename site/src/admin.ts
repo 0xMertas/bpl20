@@ -22,6 +22,7 @@ async function sign() {
     const vout = Number(voutS);
     const price = Number($<HTMLInputElement>("price").value);
     const amt = $<HTMLInputElement>("amt").value.trim();
+    const payTo = $<HTMLInputElement>("payto").value.trim() || undefined;
     if (!/^[0-9a-f]{64}$/i.test(txid ?? "") || !Number.isInteger(vout)) throw new Error("Coin must look like txid:vout");
     if (!/^\d+$/.test(amt) || !Number.isInteger(price) || price <= 0) throw new Error("Check amount and price");
 
@@ -31,7 +32,7 @@ async function sign() {
     const out = await getOutput(cfg.network, txid, vout);
     const psbt = buildListingPsbt({
       network: net, seller: me.address, sellerPubkeyHex: me.pubkeyHex,
-      utxo: { txid, vout, value: out.value, scriptPk: out.scriptPk }, price,
+      utxo: { txid, vout, value: out.value, scriptPk: out.scriptPk }, price, payTo,
     });
     say("Approve the signature in UniSat. It only signs the lot, it does not send anything.");
     const signedHex = await unisat().signPsbt(psbt.toHex(), {
@@ -61,6 +62,8 @@ async function main() {
       say(e?.message ?? String(e), true);
     }
   };
+  const cfgPay = (cfg as any).payoutAddress as string | undefined;
+  if (cfgPay) $<HTMLInputElement>("payto").value = cfgPay;
   $("sign").onclick = sign;
   $("dl").onclick = () => {
     const a = document.createElement("a");

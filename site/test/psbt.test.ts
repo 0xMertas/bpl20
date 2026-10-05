@@ -37,10 +37,10 @@ function setup(buyerKind: "p2wpkh" | "p2tr") {
   return { sellerKp, buyerKp, sellerPay, buyerPay, lotCoin, mk };
 }
 
-function sellerSign(s: ReturnType<typeof setup>, price: number): Lot {
+function sellerSign(s: ReturnType<typeof setup>, price: number, payTo?: string): Lot {
   const psbt = buildListingPsbt({
     network: net, seller: s.sellerPay.address!, sellerPubkeyHex: pub(s.sellerKp).toString("hex"),
-    utxo: s.lotCoin, price,
+    utxo: s.lotCoin, price, payTo,
   });
   psbt.signInput(1, tweakSigner(s.sellerKp), [SIGHASH_SINGLE_ACP]);
   return {
@@ -135,4 +135,22 @@ test("build-lots CLI keeps valid lots and skips bad/duplicate ones", () => {
   assert.equal(lots.length, 1);
   assert.equal(lots[0].price, 20000);
   assert.equal(lots[0].seller, s.sellerPay.address);
+});
+
+test("profit can be paid to a different payout wallet", () => {
+  const s = setup("p2wpkh");
+  const profitKp = ECPair.makeRandom({ network: net });
+  const profitPay = p2wpkh(profitKp);
+  const lot = sellerSign(s, 20000, profitPay.address!);
+  assert.ok(verifyListing(lot.psbt, net));
+  const buyer = {
+    address: s.buyerPay.address!, pubkeyHex: pub(s.buyerKp).toString("hex"),
+    utxos: [s.mk(1, 1000), s.mk(2, 15000), s.mk(3, 30000)],
+  };
+  const plan = buildBuyPsbt(lot, buyer, 5, net);
+  for (const i of plan.buyerInputIndexes) plan.psbt.signInput(i, { publicKey: pub(s.buyerKp), sign: (h: Buffer) => Buffer.from(s.buyerKp.sign(h)) } as any);
+  const tx = bitcoin.Transaction.fromHex(finalizeAndExtract(plan.psbt).hex);
+  assert.ok(tx.outs[1].script.equals(profitPay.output!), "payment goes to the payout wallet");
+  assert.equal(tx.outs[1].value, 20000);
+  assert.throws(() => buildListingPsbt({ network: net, seller: s.sellerPay.address!, sellerPubkeyHex: pub(s.sellerKp).toString("hex"), utxo: s.lotCoin, price: 20000, payTo: "bc1qnotavalidaddress" }), /./);
 });
