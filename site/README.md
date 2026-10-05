@@ -30,6 +30,12 @@ so the buyer can add their own coins and cannot change the price. Final transact
 A lot sells once. The page hides sold lots by checking whether the coin is spent (free mempool.space API).
 Do **not** move a lot's coin yourself while it is listed, and keep it in the wallet you listed from.
 
+## Many lots at once
+
+Each lot is one 1,000-token transfer inscription. On `admin.html`, paste one `txid:vout` per line, set the price (use the calculator), and press
+**Sign lot** once. The page signs all of them (one approval if the wallet supports batch signing, otherwise one per lot) and verifies every signature.
+A buyer who wants more than 1,000 tokens simply claims more lots.
+
 ## Payout wallet
 
 On `admin.html`, the **Payout address** field sets where buyers' payments go, so all profit lands in one wallet. It can differ from the wallet

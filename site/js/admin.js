@@ -17935,36 +17935,56 @@ var say = (msg, bad = false) => {
 async function sign() {
   try {
     if (!me) throw new Error("Connect your wallet first.");
-    const [txid, voutS] = $("coin").value.trim().split(":");
-    const vout = Number(voutS);
+    const coins = $("coin").value.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!coins.length) throw new Error("Enter at least one coin as txid:vout");
     const price = Number($("price").value);
     const amt = $("amt").value.trim();
     const payTo = $("payto").value.trim() || void 0;
-    if (!/^[0-9a-f]{64}$/i.test(txid ?? "") || !Number.isInteger(vout)) throw new Error("Coin must look like txid:vout");
     if (!/^\d+$/.test(amt) || !Number.isInteger(price) || price <= 0) throw new Error("Check amount and price");
+    const seen = new Set(lines.map((l) => JSON.parse(l).coin));
     const net = networkFor(cfg.network);
-    say("Checking the coin on chain...");
-    if (await isSpent(cfg.network, txid, vout)) throw new Error("That coin is already spent.");
-    const out = await getOutput(cfg.network, txid, vout);
-    const psbt = buildListingPsbt({
-      network: net,
-      seller: me.address,
-      sellerPubkeyHex: me.pubkeyHex,
-      utxo: { txid, vout, value: out.value, scriptPk: out.scriptPk },
-      price,
-      payTo
+    const listings = [];
+    for (const [n, c] of coins.entries()) {
+      const [txid, voutS] = c.split(":");
+      const vout = Number(voutS);
+      if (!/^[0-9a-f]{64}$/i.test(txid ?? "") || !Number.isInteger(vout)) throw new Error(`Line ${n + 1}: must look like txid:vout`);
+      if (seen.has(c)) throw new Error(`Line ${n + 1}: already signed in this session`);
+      say(`Checking coin ${n + 1} of ${coins.length} on chain...`);
+      if (await isSpent(cfg.network, txid, vout)) throw new Error(`Line ${n + 1}: that coin is already spent.`);
+      const out = await getOutput(cfg.network, txid, vout);
+      listings.push({
+        coin: c,
+        psbt: buildListingPsbt({
+          network: net,
+          seller: me.address,
+          sellerPubkeyHex: me.pubkeyHex,
+          utxo: { txid, vout, value: out.value, scriptPk: out.scriptPk },
+          price,
+          payTo
+        })
+      });
+    }
+    say("Approve in UniSat. It only signs the lots, it does not send anything.");
+    const u = unisat();
+    const opts = { autoFinalized: false, toSignInputs: [{ index: 1, address: me.address, sighashTypes: [SIGHASH_SINGLE_ACP] }] };
+    let signed;
+    if (typeof u.signPsbts === "function" && listings.length > 1) {
+      signed = await u.signPsbts(listings.map((l) => l.psbt.toHex()), listings.map(() => opts));
+    } else {
+      signed = [];
+      for (const [n, l] of listings.entries()) {
+        say(`Approve lot ${n + 1} of ${listings.length} in UniSat...`);
+        signed.push(await u.signPsbt(l.psbt.toHex(), opts));
+      }
+    }
+    listings.forEach((l, n) => {
+      const b64 = bitcoin3.Psbt.fromHex(signed[n], { network: net }).toBase64();
+      if (!verifyListing(b64, net)) throw new Error(`The wallet's signature for lot ${n + 1} did not verify. Nothing was saved.`);
+      lines.push(JSON.stringify({ tick: cfg.tick, amt, psbt: b64, coin: l.coin }));
     });
-    say("Approve the signature in UniSat. It only signs the lot, it does not send anything.");
-    const signedHex = await unisat().signPsbt(psbt.toHex(), {
-      autoFinalized: false,
-      toSignInputs: [{ index: 1, address: me.address, sighashTypes: [SIGHASH_SINGLE_ACP] }]
-    });
-    const b64 = bitcoin3.Psbt.fromHex(signedHex, { network: net }).toBase64();
-    if (!verifyListing(b64, net)) throw new Error("The wallet's signature did not verify. Nothing was saved.");
-    lines.push(JSON.stringify({ tick: cfg.tick, amt, psbt: b64 }));
     $("out").textContent = lines.join("\n");
     $("dl").disabled = false;
-    say(`Lot signed and verified (${lines.length} so far). Download when done.`);
+    say(`${listings.length} lot(s) signed and verified (${lines.length} so far). Download when done.`);
   } catch (e) {
     say(e?.message ?? String(e), true);
   }
