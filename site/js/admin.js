@@ -12237,12 +12237,12 @@ var require_psbt2 = __commonJS({
       }
     }
     function checkFees(psbt, cache, opts) {
-      const feeRate = cache.__FEE_RATE || psbt.getFeeRate();
+      const feeRate2 = cache.__FEE_RATE || psbt.getFeeRate();
       const vsize = cache.__EXTRACTED_TX.virtualSize();
-      const satoshis = feeRate * vsize;
-      if (feeRate >= opts.maximumFeeRate) {
+      const satoshis = feeRate2 * vsize;
+      if (feeRate2 >= opts.maximumFeeRate) {
         throw new Error(
-          `Warning: You are paying around ${(satoshis / 1e8).toFixed(8)} in fees, which is ${feeRate} satoshi per byte for a transaction with a VSize of ${vsize} bytes (segwit counted as 0.25 byte per byte). Use setMaximumFeeRate method to raise your threshold, or pass true to the first arg of extractTransaction.`
+          `Warning: You are paying around ${(satoshis / 1e8).toFixed(8)} in fees, which is ${feeRate2} satoshi per byte for a transaction with a VSize of ${vsize} bytes (segwit counted as 0.25 byte per byte). Use setMaximumFeeRate method to raise your threshold, or pass true to the first arg of extractTransaction.`
         );
       }
     }
@@ -17771,6 +17771,29 @@ async function getOutput(n, txid, vout) {
   if (!o) throw new Error("That output does not exist");
   return { value: o.value, scriptPk: o.scriptpubkey, address: o.scriptpubkey_address };
 }
+async function feeRate(n) {
+  const f = await get(n, "/v1/fees/recommended");
+  return Math.max(1, Math.ceil(f.halfHourFee));
+}
+async function btcUsd() {
+  const p = await get("mainnet", "/v1/prices");
+  return p.USD;
+}
+
+// src/pricing.ts
+init_buffer_shim();
+var INSCRIBE_VB = 350;
+var POSTAGE = 546;
+var lotCostSats = (feeRate2) => Math.ceil(INSCRIBE_VB * feeRate2) + POSTAGE;
+var usdToSats = (usd, btcUsd2) => Math.ceil(usd / btcUsd2 * 1e8);
+var satsToUsd = (sats, btcUsd2) => sats / 1e8 * btcUsd2;
+function suggestPrice(feeRate2, btcUsd2, profitUsd) {
+  if (!(feeRate2 > 0) || !(btcUsd2 > 0) || !(profitUsd >= 0)) throw new Error("Enter positive fee rate, BTC price and profit");
+  const cost = lotCostSats(feeRate2);
+  const profit = usdToSats(profitUsd, btcUsd2);
+  const price = cost + profit;
+  return { cost, profit, price, costUsd: satsToUsd(cost, btcUsd2), priceUsd: satsToUsd(price, btcUsd2) };
+}
 
 // src/psbt.ts
 init_buffer_shim();
@@ -17961,6 +17984,30 @@ async function main() {
   const cfgPay = cfg.payoutAddress;
   if (cfgPay) $("payto").value = cfgPay;
   $("sign").onclick = sign;
+  let suggested = 0;
+  const recalc = () => {
+    try {
+      const r = suggestPrice(
+        Number($("rate").value),
+        Number($("btc").value),
+        Number($("profit").value)
+      );
+      suggested = r.price;
+      $("suggest").textContent = `Your cost ${r.cost.toLocaleString()} sats ($${r.costUsd.toFixed(2)}) + profit ${r.profit.toLocaleString()} sats = suggested price ${r.price.toLocaleString()} sats ($${r.priceUsd.toFixed(2)}). The buyer also pays their own network fee.`;
+    } catch (e) {
+      suggested = 0;
+      $("suggest").textContent = e.message;
+    }
+  };
+  for (const id of ["rate", "btc", "profit"]) $(id).addEventListener("input", recalc);
+  $("usesug").onclick = () => {
+    if (suggested) $("price").value = String(suggested);
+  };
+  Promise.all([feeRate(cfg.network === "mainnet" ? "mainnet" : cfg.network), btcUsd()]).then(([fee, usd]) => {
+    $("rate").value = String(fee);
+    $("btc").value = String(Math.round(usd));
+    recalc();
+  }).catch(() => $("suggest").textContent = "Could not load live data. Type the fee rate and BTC price yourself.");
   $("dl").onclick = () => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/plain" }));

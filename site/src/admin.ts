@@ -1,7 +1,8 @@
 // Seller page: turn your transfer inscriptions into signed "lots". Run it yourself, locally or on the site.
 // Your wallet signs; no key is ever typed here.
 import * as bitcoin from "bitcoinjs-lib";
-import { getOutput, isSpent, type Config } from "./chain";
+import { btcUsd, feeRate as fetchFee, getOutput, isSpent, type Config } from "./chain";
+import { suggestPrice } from "./pricing";
 import { SIGHASH_SINGLE_ACP, buildListingPsbt, networkFor, verifyListing } from "./psbt";
 import { connect, unisat } from "./wallet";
 
@@ -65,6 +66,34 @@ async function main() {
   const cfgPay = (cfg as any).payoutAddress as string | undefined;
   if (cfgPay) $<HTMLInputElement>("payto").value = cfgPay;
   $("sign").onclick = sign;
+
+  let suggested = 0;
+  const recalc = () => {
+    try {
+      const r = suggestPrice(
+        Number($<HTMLInputElement>("rate").value),
+        Number($<HTMLInputElement>("btc").value),
+        Number($<HTMLInputElement>("profit").value),
+      );
+      suggested = r.price;
+      $("suggest").textContent =
+        `Your cost ${r.cost.toLocaleString()} sats ($${r.costUsd.toFixed(2)}) + profit ${r.profit.toLocaleString()} sats = suggested price ${r.price.toLocaleString()} sats ($${r.priceUsd.toFixed(2)}). The buyer also pays their own network fee.`;
+    } catch (e: any) {
+      suggested = 0;
+      $("suggest").textContent = e.message;
+    }
+  };
+  for (const id of ["rate", "btc", "profit"]) $(id).addEventListener("input", recalc);
+  $("usesug").onclick = () => {
+    if (suggested) $<HTMLInputElement>("price").value = String(suggested);
+  };
+  Promise.all([fetchFee(cfg.network === "mainnet" ? "mainnet" : cfg.network), btcUsd()])
+    .then(([fee, usd]) => {
+      $<HTMLInputElement>("rate").value = String(fee);
+      $<HTMLInputElement>("btc").value = String(Math.round(usd));
+      recalc();
+    })
+    .catch(() => ($("suggest").textContent = "Could not load live data. Type the fee rate and BTC price yourself."));
   $("dl").onclick = () => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/plain" }));

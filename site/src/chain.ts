@@ -55,3 +55,9 @@ export async function addressUtxos(n: NetName, address: string) {
   const list = await get<{ txid: string; vout: number; value: number; status: { confirmed: boolean } }[]>(n, `/address/${address}/utxo`);
   return list.filter((u) => u.status.confirmed);
 }
+
+// Current BTC price in USD (mainnet price feed; used only for the seller's price calculator).
+export async function btcUsd(): Promise<number> {
+  const p = await get<{ USD: number }>("mainnet", "/v1/prices");
+  return p.USD;
+}

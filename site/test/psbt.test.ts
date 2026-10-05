@@ -154,3 +154,15 @@ test("profit can be paid to a different payout wallet", () => {
   assert.equal(tx.outs[1].value, 20000);
   assert.throws(() => buildListingPsbt({ network: net, seller: s.sellerPay.address!, sellerPubkeyHex: pub(s.sellerKp).toString("hex"), utxo: s.lotCoin, price: 20000, payTo: "bc1qnotavalidaddress" }), /./);
 });
+
+import { suggestPrice, lotCostSats } from "../src/pricing";
+test("price calculator: cost + profit follows the fee rate", () => {
+  assert.equal(lotCostSats(5), 350 * 5 + 546);
+  const lo = suggestPrice(2, 100000, 1.2);
+  assert.equal(lo.cost, 1246);
+  assert.equal(lo.profit, 1200);
+  assert.equal(lo.price, 2446);
+  const hi = suggestPrice(10, 100000, 1.2);
+  assert.ok(hi.price > lo.price, "price rises with the mempool");
+  assert.throws(() => suggestPrice(0, 100000, 1.2));
+});

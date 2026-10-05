@@ -18,6 +18,12 @@
   <input id="amt" inputmode="numeric" placeholder="1000">
   <label for="payto">Payout address (where buyers' payments go; leave empty to use the connected wallet). Public address only, never a key.</label>
   <input id="payto" placeholder="bc1p... or bc1q..." autocomplete="off">
+  <div class="note" id="calc">
+    <b>Price calculator</b>
+    <p>Fee rate you pay when inscribing (sat/vB): <input id="rate" inputmode="decimal" style="width:90px"> &nbsp;BTC price (USD): <input id="btc" inputmode="decimal" style="width:120px"> &nbsp;Profit per lot (USD): <input id="profit" inputmode="decimal" value="1.20" style="width:80px"></p>
+    <p id="suggest">Loading current fee rate and BTC price...</p>
+    <button class="ghost" id="usesug" type="button">Use suggested price</button>
+  </div>
   <label for="price">Price in sats (must cover buyer fees; see README)</label>
   <input id="price" inputmode="numeric" placeholder="20000">
   <div class="row"><button id="sign">Sign lot</button><button id="dl" class="ghost" disabled>Download signed-lots.jsonl</button></div>
