@@ -2,7 +2,7 @@
 // Your wallet signs; no key is ever typed here.
 import * as bitcoin from "bitcoinjs-lib";
 import { btcUsd, feeRate as fetchFee, getOutput, isSpent, type Config } from "./chain";
-import { suggestPrice } from "./pricing";
+import { fixedPrice, suggestPrice } from "./pricing";
 import { SIGHASH_SINGLE_ACP, buildListingPsbt, networkFor, verifyListing } from "./psbt";
 import { connect, unisat } from "./wallet";
 
@@ -103,7 +103,23 @@ async function main() {
       $("suggest").textContent = e.message;
     }
   };
+  let fixedSats = 0;
+  const recalcFixed = () => {
+    try {
+      const r = fixedPrice(Number($<HTMLInputElement>("fixed").value), Number($<HTMLInputElement>("rate").value), Number($<HTMLInputElement>("btc").value));
+      fixedSats = r.price;
+      const warn = r.profit <= 0 ? " LOSS: fees are too high for this price, wait for a lower fee rate." : r.profitUsd < 0.5 ? " Low profit: wait for a lower fee rate if you can." : "";
+      $("fixedinfo").textContent = `Price ${r.price.toLocaleString()} sats. Your cost ${r.cost.toLocaleString()} sats ($${r.costUsd.toFixed(2)}). You keep ${r.profit.toLocaleString()} sats ($${r.profitUsd.toFixed(2)}).${warn}`;
+    } catch (e: any) {
+      fixedSats = 0;
+      $("fixedinfo").textContent = e.message;
+    }
+  };
   for (const id of ["rate", "btc", "profit"]) $(id).addEventListener("input", recalc);
+  for (const id of ["rate", "btc", "fixed"]) $(id).addEventListener("input", recalcFixed);
+  $("usefixed").onclick = () => {
+    if (fixedSats) $<HTMLInputElement>("price").value = String(fixedSats);
+  };
   $("usesug").onclick = () => {
     if (suggested) $<HTMLInputElement>("price").value = String(suggested);
   };
@@ -112,6 +128,7 @@ async function main() {
       $<HTMLInputElement>("rate").value = String(fee);
       $<HTMLInputElement>("btc").value = String(Math.round(usd));
       recalc();
+      recalcFixed();
     })
     .catch(() => ($("suggest").textContent = "Could not load live data. Type the fee rate and BTC price yourself."));
   $("dl").onclick = () => {

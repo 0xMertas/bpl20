@@ -23,6 +23,9 @@
     <p>Fee rate you pay when inscribing (sat/vB): <input id="rate" inputmode="decimal" style="width:90px"> &nbsp;BTC price (USD): <input id="btc" inputmode="decimal" style="width:120px"> &nbsp;Profit per lot (USD): <input id="profit" inputmode="decimal" value="1.20" style="width:80px"></p>
     <p id="suggest">Loading current fee rate and BTC price...</p>
     <button class="ghost" id="usesug" type="button">Use suggested price</button>
+    <p>Fixed price per lot (USD): <input id="fixed" inputmode="decimal" value="2.20" style="width:80px"></p>
+    <p id="fixedinfo"></p>
+    <button class="ghost" id="usefixed" type="button">Use fixed price</button>
   </div>
   <label for="price">Price in sats (must cover buyer fees; see README)</label>
   <input id="price" inputmode="numeric" placeholder="20000">

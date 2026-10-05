@@ -166,3 +166,12 @@ test("price calculator: cost + profit follows the fee rate", () => {
   assert.ok(hi.price > lo.price, "price rises with the mempool");
   assert.throws(() => suggestPrice(0, 100000, 1.2));
 });
+
+import { fixedPrice } from "../src/pricing";
+test("fixed $2.20 price: profit depends on the fee rate", () => {
+  const lo = fixedPrice(2.2, 2, 100000);
+  assert.equal(lo.price, 2200);
+  assert.equal(lo.cost, 1246);
+  assert.equal(lo.profit, 954);
+  assert.ok(fixedPrice(2.2, 10, 100000).profit < 0, "loss when the mempool is busy");
+});

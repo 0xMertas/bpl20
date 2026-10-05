@@ -17785,7 +17785,7 @@ init_buffer_shim();
 var INSCRIBE_VB = 350;
 var POSTAGE = 546;
 var lotCostSats = (feeRate2) => Math.ceil(INSCRIBE_VB * feeRate2) + POSTAGE;
-var usdToSats = (usd, btcUsd2) => Math.ceil(usd / btcUsd2 * 1e8);
+var usdToSats = (usd, btcUsd2) => Math.round(usd * 1e8 / btcUsd2);
 var satsToUsd = (sats, btcUsd2) => sats / 1e8 * btcUsd2;
 function suggestPrice(feeRate2, btcUsd2, profitUsd) {
   if (!(feeRate2 > 0) || !(btcUsd2 > 0) || !(profitUsd >= 0)) throw new Error("Enter positive fee rate, BTC price and profit");
@@ -17793,6 +17793,13 @@ function suggestPrice(feeRate2, btcUsd2, profitUsd) {
   const profit = usdToSats(profitUsd, btcUsd2);
   const price = cost + profit;
   return { cost, profit, price, costUsd: satsToUsd(cost, btcUsd2), priceUsd: satsToUsd(price, btcUsd2) };
+}
+function fixedPrice(priceUsd, feeRate2, btcUsd2) {
+  if (!(priceUsd > 0) || !(feeRate2 > 0) || !(btcUsd2 > 0)) throw new Error("Enter positive price, fee rate and BTC price");
+  const price = usdToSats(priceUsd, btcUsd2);
+  const cost = lotCostSats(feeRate2);
+  const profit = price - cost;
+  return { price, cost, profit, profitUsd: satsToUsd(profit, btcUsd2), costUsd: satsToUsd(cost, btcUsd2) };
 }
 
 // src/psbt.ts
@@ -18019,7 +18026,23 @@ async function main() {
       $("suggest").textContent = e.message;
     }
   };
+  let fixedSats = 0;
+  const recalcFixed = () => {
+    try {
+      const r = fixedPrice(Number($("fixed").value), Number($("rate").value), Number($("btc").value));
+      fixedSats = r.price;
+      const warn = r.profit <= 0 ? " LOSS: fees are too high for this price, wait for a lower fee rate." : r.profitUsd < 0.5 ? " Low profit: wait for a lower fee rate if you can." : "";
+      $("fixedinfo").textContent = `Price ${r.price.toLocaleString()} sats. Your cost ${r.cost.toLocaleString()} sats ($${r.costUsd.toFixed(2)}). You keep ${r.profit.toLocaleString()} sats ($${r.profitUsd.toFixed(2)}).${warn}`;
+    } catch (e) {
+      fixedSats = 0;
+      $("fixedinfo").textContent = e.message;
+    }
+  };
   for (const id of ["rate", "btc", "profit"]) $(id).addEventListener("input", recalc);
+  for (const id of ["rate", "btc", "fixed"]) $(id).addEventListener("input", recalcFixed);
+  $("usefixed").onclick = () => {
+    if (fixedSats) $("price").value = String(fixedSats);
+  };
   $("usesug").onclick = () => {
     if (suggested) $("price").value = String(suggested);
   };
@@ -18027,6 +18050,7 @@ async function main() {
     $("rate").value = String(fee);
     $("btc").value = String(Math.round(usd));
     recalc();
+    recalcFixed();
   }).catch(() => $("suggest").textContent = "Could not load live data. Type the fee rate and BTC price yourself.");
   $("dl").onclick = () => {
     const a = document.createElement("a");
