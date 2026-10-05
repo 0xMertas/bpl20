@@ -8111,29 +8111,29 @@ var require_address = __commonJS({
       console.warn(FUTURE_SEGWIT_VERSION_WARNING);
       return toBech32(data, version, network.bech32);
     }
-    function fromBase58Check(address2) {
-      const payload = import_buffer.Buffer.from(bs58check.decode(address2));
-      if (payload.length < 21) throw new TypeError(address2 + " is too short");
-      if (payload.length > 21) throw new TypeError(address2 + " is too long");
+    function fromBase58Check(address3) {
+      const payload = import_buffer.Buffer.from(bs58check.decode(address3));
+      if (payload.length < 21) throw new TypeError(address3 + " is too short");
+      if (payload.length > 21) throw new TypeError(address3 + " is too long");
       const version = payload.readUInt8(0);
       const hash = payload.slice(1);
       return { version, hash };
     }
     exports.fromBase58Check = fromBase58Check;
-    function fromBech32(address2) {
+    function fromBech32(address3) {
       let result;
       let version;
       try {
-        result = bech32_1.bech32.decode(address2);
+        result = bech32_1.bech32.decode(address3);
       } catch (e) {
       }
       if (result) {
         version = result.words[0];
-        if (version !== 0) throw new TypeError(address2 + " uses wrong encoding");
+        if (version !== 0) throw new TypeError(address3 + " uses wrong encoding");
       } else {
-        result = bech32_1.bech32m.decode(address2);
+        result = bech32_1.bech32m.decode(address3);
         version = result.words[0];
-        if (version === 0) throw new TypeError(address2 + " uses wrong encoding");
+        if (version === 0) throw new TypeError(address3 + " uses wrong encoding");
       }
       const data = bech32_1.bech32.fromWords(result.words.slice(1));
       return {
@@ -8189,12 +8189,12 @@ var require_address = __commonJS({
       throw new Error(bscript.toASM(output) + " has no matching Address");
     }
     exports.fromOutputScript = fromOutputScript;
-    function toOutputScript(address2, network) {
+    function toOutputScript(address3, network) {
       network = network || networks2.bitcoin;
       let decodeBase58;
       let decodeBech32;
       try {
-        decodeBase58 = fromBase58Check(address2);
+        decodeBase58 = fromBase58Check(address3);
       } catch (e) {
       }
       if (decodeBase58) {
@@ -8204,12 +8204,12 @@ var require_address = __commonJS({
           return payments.p2sh({ hash: decodeBase58.hash }).output;
       } else {
         try {
-          decodeBech32 = fromBech32(address2);
+          decodeBech32 = fromBech32(address3);
         } catch (e) {
         }
         if (decodeBech32) {
           if (decodeBech32.prefix !== network.bech32)
-            throw new Error(address2 + " has an invalid prefix");
+            throw new Error(address3 + " has an invalid prefix");
           if (decodeBech32.version === 0) {
             if (decodeBech32.data.length === 20)
               return payments.p2wpkh({ hash: decodeBech32.data }).output;
@@ -8227,7 +8227,7 @@ var require_address = __commonJS({
           }
         }
       }
-      throw new Error(address2 + " has no matching Script");
+      throw new Error(address3 + " has no matching Script");
     }
     exports.toOutputScript = toOutputScript;
   }
@@ -11457,9 +11457,9 @@ var require_psbt2 = __commonJS({
       }
       get txOutputs() {
         return this.__CACHE.__TX.outs.map((output) => {
-          let address2;
+          let address3;
           try {
-            address2 = (0, address_1.fromOutputScript)(
+            address3 = (0, address_1.fromOutputScript)(
               output.script,
               this.opts.network
             );
@@ -11468,7 +11468,7 @@ var require_psbt2 = __commonJS({
           return {
             script: (0, bufferutils_1.cloneBuffer)(output.script),
             value: output.value,
-            address: address2
+            address: address3
           };
         });
       }
@@ -11550,10 +11550,10 @@ var require_psbt2 = __commonJS({
           );
         }
         checkInputsForPartialSig(this.data.inputs, "addOutput");
-        const { address: address2 } = outputData;
-        if (typeof address2 === "string") {
+        const { address: address3 } = outputData;
+        if (typeof address3 === "string") {
           const { network } = this.opts;
-          const script = (0, address_1.toOutputScript)(address2, network);
+          const script = (0, address_1.toOutputScript)(address3, network);
           outputData = Object.assign({}, outputData, { script });
         }
         (0, bip371_1.checkTaprootOutputFields)(outputData, outputData, "addOutput");
@@ -12863,8 +12863,8 @@ var require_src2 = __commonJS({
     init_buffer_shim();
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.initEccLib = exports.Transaction = exports.opcodes = exports.Psbt = exports.Block = exports.script = exports.payments = exports.networks = exports.crypto = exports.address = void 0;
-    var address2 = require_address();
-    exports.address = address2;
+    var address3 = require_address();
+    exports.address = address3;
     var crypto = require_crypto2();
     exports.crypto = crypto;
     var networks2 = require_networks();
@@ -17742,7 +17742,7 @@ var require_dist2 = __commonJS({
 
 // src/admin.ts
 init_buffer_shim();
-var bitcoin2 = __toESM(require_src2(), 1);
+var bitcoin3 = __toESM(require_src2(), 1);
 
 // src/chain.ts
 init_buffer_shim();
@@ -17881,6 +17881,7 @@ function networkFor(name) {
 
 // src/wallet.ts
 init_buffer_shim();
+var bitcoin2 = __toESM(require_src2(), 1);
 var unisat = () => {
   const u = window.unisat;
   if (!u) throw new Error("UniSat wallet not found. Install the UniSat extension and reload.");
@@ -17888,13 +17889,13 @@ var unisat = () => {
 };
 async function connect(net) {
   const u = unisat();
-  const [address2] = await u.requestAccounts();
+  const [address3] = await u.requestAccounts();
   if (u.switchChain && u.getChain) {
     const c = await u.getChain();
     if (c.enum !== UNISAT_CHAIN[net]) await u.switchChain(UNISAT_CHAIN[net]);
   }
   const pubkeyHex = await u.getPublicKey();
-  return { address: address2, pubkeyHex };
+  return { address: address3, pubkeyHex };
 }
 
 // src/admin.ts
@@ -17931,7 +17932,7 @@ async function sign() {
       autoFinalized: false,
       toSignInputs: [{ index: 1, address: me.address, sighashTypes: [SIGHASH_SINGLE_ACP] }]
     });
-    const b64 = bitcoin2.Psbt.fromHex(signedHex, { network: net }).toBase64();
+    const b64 = bitcoin3.Psbt.fromHex(signedHex, { network: net }).toBase64();
     if (!verifyListing(b64, net)) throw new Error("The wallet's signature did not verify. Nothing was saved.");
     lines.push(JSON.stringify({ tick: cfg.tick, amt, psbt: b64 }));
     $("out").textContent = lines.join("\n");

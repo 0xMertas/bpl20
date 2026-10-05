@@ -1,5 +1,5 @@
 import * as bitcoin from "bitcoinjs-lib";
-import { feeRate, isSpent, explorerTx, type Config } from "./chain";
+import { broadcast, feeRate, isSpent, explorerTx, type Config } from "./chain";
 import { buildBuyPsbt, finalizeAndExtract, networkFor, type Lot } from "./psbt";
 import { connect, plainUtxos, unisat } from "./wallet";
 
@@ -19,7 +19,7 @@ async function claim(lot: Lot) {
     const net = networkFor(cfg.network);
     say("Checking the lot is still available...");
     if (await isSpent(cfg.network, lot.utxo.txid, lot.utxo.vout)) throw new Error("Sorry, this lot was just sold.");
-    const [utxos, rate] = await Promise.all([plainUtxos(), feeRate(cfg.network)]);
+    const [utxos, rate] = await Promise.all([plainUtxos(cfg.network, me.address), feeRate(cfg.network)]);
     const plan = buildBuyPsbt(lot, { ...me, utxos }, rate, net);
     if (!confirm(`Pay ${lot.price} sats + ${plan.fee} sats network fee (${plan.total} total) for ${lot.amt} ${lot.tick}?`)) {
       return say("Cancelled.");
@@ -31,10 +31,8 @@ async function claim(lot: Lot) {
     });
     const { hex, txid } = finalizeAndExtract(bitcoin.Psbt.fromHex(signedHex, { network: net }));
     say("Broadcasting...");
-    const u = unisat();
-    if (u.pushTx) await u.pushTx({ rawtx: hex });
-    else throw new Error("Wallet cannot broadcast. Update UniSat.");
-    $("status").innerHTML = `Done! Your transfer inscription is on its way. <a href="${explorerTx(cfg.network, txid)}" target="_blank" rel="noopener">View transaction</a>`;
+    const sentTxid = await broadcast(cfg.network, hex);
+    $("status").innerHTML = `Done! Your transfer inscription is on its way. <a href="${explorerTx(cfg.network, sentTxid || txid)}" target="_blank" rel="noopener">View transaction</a>`;
     $("status").className = "";
   } catch (e: any) {
     say(e?.message ?? String(e), true);

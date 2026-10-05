@@ -63,13 +63,17 @@ npm run typecheck
 npm run build       # bundles src/ into js/ (commit js/ so GitHub Pages can serve it)
 ```
 
-## Not verified against real hardware
+## What was and was not verified against real UniSat
 
-Tested: transaction construction and signatures with real keys, the lots CLI, and the page in headless Chromium against a mocked
-wallet and chain. **Not tested:** the real UniSat extension. The code relies on `window.unisat` methods `getBitcoinUtxos`, `signPsbt`
-(with `toSignInputs`/`sighashTypes`/`autoFinalized`), `pushTx`, `switchChain` and chain name `BITCOIN_TESTNET4`; check them against the
-current UniSat docs and run a full testnet purchase before using mainnet. Also confirm your transfer inscription sits on the
-first sat of its coin (the normal case); the site assumes that.
+Cross-checked against published code of other UniSat integrations (npm): `requestAccounts`, `getPublicKey`, `getChain().enum`,
+`switchChain`, chain names (`BITCOIN_MAINNET`, `BITCOIN_TESTNET4`, `BITCOIN_SIGNET`), `signPsbt(hex, {autoFinalized, toSignInputs:[{index,address}]})`
+returning the signed PSBT hex, and `getInscriptions`. Broadcasting uses the mempool.space API, not a wallet call.
+`getBitcoinUtxos` is used if present; otherwise coins come from the explorer minus anything in the wallet's inscription list
+(tested in a real browser: a coin holding an inscription is never spent).
+
+Still unverified because the real extension cannot run here: `sighashTypes` inside `toSignInputs` (used only on `admin.html` to allow
+sighash 0x83), and the exact fields of `getInscriptions` entries (the code needs `location` or `output` and refuses to continue if absent).
+If `admin.html` shows a wallet error when signing, send the exact message.
 
 ## Safety
 

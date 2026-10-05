@@ -42,3 +42,16 @@ export async function feeRate(n: NetName): Promise<number> {
   const f = await get<{ halfHourFee: number }>(n, "/v1/fees/recommended");
   return Math.max(1, Math.ceil(f.halfHourFee));
 }
+
+// Broadcast a raw transaction through the public explorer API (same approach other UniSat integrations use).
+export async function broadcast(n: NetName, rawHex: string): Promise<string> {
+  const r = await fetch(API[n] + "/tx", { method: "POST", body: rawHex });
+  const body = await r.text();
+  if (!r.ok) throw new Error(`Broadcast failed: ${body}`);
+  return body.trim();
+}
+
+export async function addressUtxos(n: NetName, address: string) {
+  const list = await get<{ txid: string; vout: number; value: number; status: { confirmed: boolean } }[]>(n, `/address/${address}/utxo`);
+  return list.filter((u) => u.status.confirmed);
+}
