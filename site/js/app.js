@@ -18009,7 +18009,7 @@ async function main() {
   $("prepare").onclick = prepare;
   const lots = await (await fetch("lots.json", { cache: "no-store" })).json();
   const box = $("lots");
-  if (!lots.length) box.textContent = "No lots for sale right now.";
+  box.textContent = lots.length ? "" : "No lots for sale right now.";
   for (const lot of lots) {
     const card = document.createElement("div");
     card.className = "lot";
