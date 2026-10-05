@@ -1,5 +1,5 @@
 {
-  "network": "testnet4",
+  "network": "mainnet",
   "tick": "WORLDX",
   "siteName": "WORLDX claim",
   "explorerNote": "Change network to \"mainnet\" only after you have tested everything end to end.",
