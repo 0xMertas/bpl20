@@ -14,7 +14,7 @@ if (!files.length) {
   process.exit(1);
 }
 const cfg = JSON.parse(readFileSync(join(root, "config.json"), "utf8"));
-const net = networkFor(cfg.network);
+const net = networkFor(process.env.NETWORK ?? cfg.network); // NETWORK env overrides config (used by tests)
 
 const lots = new Map<string, Lot>();
 let bad = 0;
