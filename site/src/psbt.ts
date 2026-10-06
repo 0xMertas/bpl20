@@ -241,3 +241,23 @@ export function finalizeAndExtract(psbt: bitcoin.Psbt): { hex: string; txid: str
 export function networkFor(name: "mainnet" | "testnet4" | "signet"): bitcoin.Network {
   return name === "mainnet" ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
 }
+
+// Build the lots.json entry for one signed listing (same data the lots CLI writes).
+export function lotFromSigned(
+  line: { tick: string; amt: string; psbt: string; devFee?: number },
+  network: bitcoin.Network,
+): Lot {
+  if (!/^\d+$/.test(line.amt)) throw new Error("bad amt");
+  if (!verifyListing(line.psbt, network)) throw new Error("signature does not verify");
+  const l = readSignedListing(line.psbt, network);
+  return {
+    id: `${line.tick}-${l.utxo.txid.slice(0, 8)}-${l.utxo.vout}`,
+    tick: line.tick,
+    amt: line.amt,
+    price: l.price,
+    devFee: line.devFee !== undefined ? Math.min(line.devFee, l.price) : undefined,
+    seller: bitcoin.address.fromOutputScript(l.sellerScript, network),
+    utxo: l.utxo,
+    psbt: line.psbt,
+  };
+}

@@ -17910,6 +17910,21 @@ function verifyListing(psbtB64, network) {
 function networkFor(name) {
   return name === "mainnet" ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
 }
+function lotFromSigned(line, network) {
+  if (!/^\d+$/.test(line.amt)) throw new Error("bad amt");
+  if (!verifyListing(line.psbt, network)) throw new Error("signature does not verify");
+  const l = readSignedListing(line.psbt, network);
+  return {
+    id: `${line.tick}-${l.utxo.txid.slice(0, 8)}-${l.utxo.vout}`,
+    tick: line.tick,
+    amt: line.amt,
+    price: l.price,
+    devFee: line.devFee !== void 0 ? Math.min(line.devFee, l.price) : void 0,
+    seller: bitcoin.address.fromOutputScript(l.sellerScript, network),
+    utxo: l.utxo,
+    psbt: line.psbt
+  };
+}
 
 // src/wallet.ts
 init_buffer_shim();
@@ -17928,6 +17943,22 @@ async function connect(net) {
   }
   const pubkeyHex = await u.getPublicKey();
   return { address: address3, pubkeyHex };
+}
+async function newestInscriptions(max = 12) {
+  const u = unisat();
+  if (!u.getInscriptions) throw new Error("Please update the UniSat extension (cannot list inscriptions).");
+  const page = await u.getInscriptions(0, max);
+  return page.list.map((i) => {
+    const loc = i.location ?? i.output ?? "";
+    const [txid, vout, off] = loc.split(":");
+    return {
+      id: String(i.inscriptionId ?? ""),
+      number: i.inscriptionNumber,
+      coin: `${txid}:${vout}`,
+      value: i.outputValue,
+      offset: off === void 0 ? Number(i.offset ?? 0) : Number(off)
+    };
+  });
 }
 
 // src/admin.ts
@@ -17994,6 +18025,7 @@ async function sign() {
     });
     $("out").textContent = lines.join("\n");
     $("dl").disabled = false;
+    $("dllots").disabled = false;
     say(`${listings.length} lot(s) signed and verified (${lines.length} so far). Download when done.`);
   } catch (e) {
     say(e?.message ?? String(e), true);
@@ -18014,6 +18046,60 @@ async function main() {
   const cfgPay = cfg.payoutAddress;
   if (cfgPay) $("payto").value = cfgPay;
   $("sign").onclick = sign;
+  $("load").onclick = async () => {
+    try {
+      if (!me) throw new Error("Connect your wallet first.");
+      say("Reading your newest inscriptions (read-only)...");
+      const list = await newestInscriptions(12);
+      const box = $("insclist");
+      box.style.display = "block";
+      box.innerHTML = "<b>Tap the transfer inscription(s) you just created (newest first):</b>";
+      if (!list.length) box.append(" none found.");
+      for (const i of list) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "ghost";
+        b.style.cssText = "display:block;margin:6px 0;width:100%;text-align:left";
+        const ok = i.offset === 0;
+        b.textContent = `#${i.number ?? "?"}  ${i.id.slice(0, 12)}...  coin ${i.coin.slice(0, 10)}...:${i.coin.split(":")[1]}${i.value ? `  (${i.value} sats)` : ""}${ok ? "" : "  - not on first sat, cannot use"}`;
+        b.disabled = !ok;
+        b.onclick = () => {
+          const ta = $("coin");
+          if (!ta.value.split("\n").includes(i.coin)) ta.value = (ta.value ? ta.value.trim() + "\n" : "") + i.coin;
+          b.textContent = "added: " + b.textContent;
+          b.disabled = true;
+        };
+        box.append(b);
+      }
+      say('Tap your transfer inscription to add it. Not sure which one? Check its content in UniSat: it must say "op":"transfer".');
+    } catch (e) {
+      say(e?.message ?? String(e), true);
+    }
+  };
+  $("dllots").onclick = async () => {
+    try {
+      const net = networkFor(cfg.network);
+      let existing = [];
+      try {
+        existing = await (await fetch("lots.json", { cache: "no-store" })).json();
+      } catch {
+      }
+      const byCoin = new Map(existing.map((l) => [`${l.utxo.txid}:${l.utxo.vout}`, l]));
+      for (const raw of lines) {
+        const { tick, amt, psbt, devFee } = JSON.parse(raw);
+        const lot = lotFromSigned({ tick, amt, psbt, devFee }, net);
+        byCoin.set(`${lot.utxo.txid}:${lot.utxo.vout}`, lot);
+      }
+      const out = [...byCoin.values()].sort((a2, b) => a2.price - b.price);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2) + "\n"], { type: "application/json" }));
+      a.download = "lots.json";
+      a.click();
+      say(`lots.json has ${out.length} lot(s). Put it in your site folder, replacing the old lots.json, and refresh the claim page.`);
+    } catch (e) {
+      say(e?.message ?? String(e), true);
+    }
+  };
   let suggested = 0;
   const recalc = () => {
     try {

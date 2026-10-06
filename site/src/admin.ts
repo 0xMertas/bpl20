@@ -3,8 +3,8 @@
 import * as bitcoin from "bitcoinjs-lib";
 import { btcUsd, feeRate as fetchFee, getOutput, isSpent, type Config } from "./chain";
 import { fixedPrice, lotCostSats, suggestPrice } from "./pricing";
-import { SIGHASH_SINGLE_ACP, buildListingPsbt, networkFor, verifyListing } from "./psbt";
-import { connect, unisat } from "./wallet";
+import { SIGHASH_SINGLE_ACP, buildListingPsbt, lotFromSigned, networkFor, verifyListing, type Lot } from "./psbt";
+import { connect, newestInscriptions, unisat } from "./wallet";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 let cfg: Config;
@@ -68,6 +68,7 @@ async function sign() {
     });
     $("out").textContent = lines.join("\n");
     $<HTMLButtonElement>("dl").disabled = false;
+    $<HTMLButtonElement>("dllots").disabled = false;
     say(`${listings.length} lot(s) signed and verified (${lines.length} so far). Download when done.`);
   } catch (e: any) {
     say(e?.message ?? String(e), true);
@@ -89,6 +90,61 @@ async function main() {
   const cfgPay = (cfg as any).payoutAddress as string | undefined;
   if (cfgPay) $<HTMLInputElement>("payto").value = cfgPay;
   $("sign").onclick = sign;
+
+  $("load").onclick = async () => {
+    try {
+      if (!me) throw new Error("Connect your wallet first.");
+      say("Reading your newest inscriptions (read-only)...");
+      const list = await newestInscriptions(12);
+      const box = $("insclist");
+      box.style.display = "block";
+      box.innerHTML = "<b>Tap the transfer inscription(s) you just created (newest first):</b>";
+      if (!list.length) box.append(" none found.");
+      for (const i of list) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "ghost";
+        b.style.cssText = "display:block;margin:6px 0;width:100%;text-align:left";
+        const ok = i.offset === 0;
+        b.textContent = `#${i.number ?? "?"}  ${i.id.slice(0, 12)}...  coin ${i.coin.slice(0, 10)}...:${i.coin.split(":")[1]}${i.value ? `  (${i.value} sats)` : ""}${ok ? "" : "  - not on first sat, cannot use"}`;
+        b.disabled = !ok;
+        b.onclick = () => {
+          const ta = $<HTMLTextAreaElement>("coin");
+          if (!ta.value.split("\n").includes(i.coin)) ta.value = (ta.value ? ta.value.trim() + "\n" : "") + i.coin;
+          b.textContent = "added: " + b.textContent;
+          b.disabled = true;
+        };
+        box.append(b);
+      }
+      say("Tap your transfer inscription to add it. Not sure which one? Check its content in UniSat: it must say \"op\":\"transfer\".");
+    } catch (e: any) {
+      say(e?.message ?? String(e), true);
+    }
+  };
+
+  $("dllots").onclick = async () => {
+    try {
+      const net = networkFor(cfg.network);
+      let existing: Lot[] = [];
+      try {
+        existing = await (await fetch("lots.json", { cache: "no-store" })).json();
+      } catch {}
+      const byCoin = new Map<string, Lot>(existing.map((l) => [`${l.utxo.txid}:${l.utxo.vout}`, l]));
+      for (const raw of lines) {
+        const { tick, amt, psbt, devFee } = JSON.parse(raw);
+        const lot = lotFromSigned({ tick, amt, psbt, devFee }, net);
+        byCoin.set(`${lot.utxo.txid}:${lot.utxo.vout}`, lot);
+      }
+      const out = [...byCoin.values()].sort((a, b) => a.price - b.price);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2) + "\n"], { type: "application/json" }));
+      a.download = "lots.json";
+      a.click();
+      say(`lots.json has ${out.length} lot(s). Put it in your site folder, replacing the old lots.json, and refresh the claim page.`);
+    } catch (e: any) {
+      say(e?.message ?? String(e), true);
+    }
+  };
 
   let suggested = 0;
   const recalc = () => {

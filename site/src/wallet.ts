@@ -97,3 +97,23 @@ export function onWalletChange(cb: (e: "accounts" | "network") => void) {
   u?.on?.("accountsChanged", () => cb("accounts"));
   u?.on?.("networkChanged", () => cb("network"));
 }
+
+export type MyInscription = { id: string; number?: number; coin: string; value?: number; offset: number };
+
+// Newest inscriptions in the connected wallet (read-only). Only those at offset 0 of their coin are usable as lots.
+export async function newestInscriptions(max = 12): Promise<MyInscription[]> {
+  const u = unisat();
+  if (!u.getInscriptions) throw new Error("Please update the UniSat extension (cannot list inscriptions).");
+  const page = await u.getInscriptions(0, max);
+  return page.list.map((i: any) => {
+    const loc: string = i.location ?? i.output ?? "";
+    const [txid, vout, off] = loc.split(":");
+    return {
+      id: String(i.inscriptionId ?? ""),
+      number: i.inscriptionNumber,
+      coin: `${txid}:${vout}`,
+      value: i.outputValue,
+      offset: off === undefined ? Number(i.offset ?? 0) : Number(off),
+    };
+  });
+}

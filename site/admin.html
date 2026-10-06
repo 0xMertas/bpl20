@@ -13,6 +13,8 @@
   <p>Connect the wallet that holds your BRC-20 <b>transfer inscriptions</b>. For each one, enter its coin and the price. Your wallet signs a lot; nothing is sent.</p>
   <div class="row"><button id="connect">Connect UniSat</button></div>
   <label for="coin">Inscription coins, one per line (txid:vout). Each line becomes one lot.</label>
+  <div class="row"><button class="ghost" id="load" type="button">Load my newest inscriptions</button></div>
+  <div id="insclist" class="note" style="display:none"></div>
   <textarea id="coin" rows="4" placeholder="64-hex-txid:0" autocomplete="off" style="width:100%;padding:10px;margin:4px 0 12px;border-radius:8px;border:1px solid var(--mut);background:var(--card);color:var(--fg);font:inherit"></textarea>
   <label for="amt">Token amount in that transfer inscription</label>
   <input id="amt" inputmode="numeric" placeholder="1000" value="1000">
@@ -29,7 +31,7 @@
   </div>
   <label for="price">Price in sats (must cover buyer fees; see README)</label>
   <input id="price" inputmode="numeric" placeholder="20000">
-  <div class="row"><button id="sign">Sign lot</button><button id="dl" class="ghost" disabled>Download signed-lots.jsonl</button></div>
+  <div class="row"><button id="sign">Sign lot</button><button id="dl" class="ghost" disabled>Download signed-lots.jsonl</button><button id="dllots" disabled>Download lots.json</button></div>
   <div id="status"></div>
   <pre id="out"></pre>
 </main>
