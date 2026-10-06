@@ -61,3 +61,26 @@ export async function btcUsd(): Promise<number> {
   const p = await get<{ USD: number }>("mainnet", "/v1/prices");
   return p.USD;
 }
+
+export type InscriptionKind =
+  | { kind: "transfer"; tick: string; amt: string }
+  | { kind: "deploy" | "mint" | "other"; tick?: string }
+  | { kind: "unknown" };
+
+// Reads an inscription's content to tell a BRC-20 transfer from a deploy/mint/other. Mainnet only; "unknown" if it cannot be read.
+export async function inscriptionKind(n: NetName, id: string): Promise<InscriptionKind> {
+  if (n !== "mainnet" || !id) return { kind: "unknown" };
+  try {
+    const r = await fetch(`https://api.hiro.so/ordinals/v1/inscriptions/${id}/content`);
+    if (!r.ok) return { kind: "unknown" };
+    const j = JSON.parse(await r.text());
+    if (String(j?.p).toLowerCase() !== "brc-20") return { kind: "other" };
+    const tick = String(j.tick ?? "").toUpperCase();
+    if (j.op === "transfer") return { kind: "transfer", tick, amt: String(j.amt ?? "") };
+    if (j.op === "deploy") return { kind: "deploy", tick };
+    if (j.op === "mint") return { kind: "mint", tick };
+    return { kind: "other" };
+  } catch {
+    return { kind: "unknown" };
+  }
+}

@@ -1,7 +1,7 @@
 // Seller page: turn your transfer inscriptions into signed "lots". Run it yourself, locally or on the site.
 // Your wallet signs; no key is ever typed here.
 import * as bitcoin from "bitcoinjs-lib";
-import { btcUsd, feeRate as fetchFee, getOutput, isSpent, type Config } from "./chain";
+import { btcUsd, feeRate as fetchFee, getOutput, inscriptionKind, isSpent, type Config } from "./chain";
 import { fixedPrice, lotCostSats, suggestPrice } from "./pricing";
 import { SIGHASH_SINGLE_ACP, buildListingPsbt, lotFromSigned, networkFor, verifyListing, type Lot } from "./psbt";
 import { connect, newestInscriptions, unisat } from "./wallet";
@@ -10,6 +10,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 let cfg: Config;
 let me: { address: string; pubkeyHex: string } | null = null;
 const lines: string[] = [];
+const coinToId = new Map<string, string>(); // coin -> inscription id, from the wallet list
 
 const say = (msg: string, bad = false) => {
   $("status").textContent = msg;
@@ -31,6 +32,24 @@ async function sign(): Promise<boolean> {
     const seen = new Set(lines.map((l) => JSON.parse(l).coin));
 
     const net = networkFor(cfg.network);
+    // Safety: never sign anything that is not a BRC-20 transfer of this ticker for the stated amount.
+    const unverified: string[] = [];
+    for (const c of coins) {
+      const id = coinToId.get(c);
+      const k = id ? await inscriptionKind(cfg.network, id) : ({ kind: "unknown" } as const);
+      if (k.kind === "deploy") throw new Error(`STOP: ${c.slice(0, 12)}... is your DEPLOY inscription, not a transfer. Selling it would give away your ticker and NO tokens. Create a transfer in UniSat first (BRC-20 > ${cfg.tick} > Inscribe Transfer).`);
+      if (k.kind === "mint" || k.kind === "other") throw new Error(`STOP: ${c.slice(0, 12)}... is not a BRC-20 transfer inscription.`);
+      if (k.kind === "transfer") {
+        if (k.tick !== cfg.tick.toUpperCase()) throw new Error(`STOP: ${c.slice(0, 12)}... is a transfer of ${k.tick}, not ${cfg.tick}.`);
+        if (k.amt !== amt) throw new Error(`STOP: ${c.slice(0, 12)}... transfers ${k.amt}, but you entered ${amt}. Fix the amount.`);
+      } else {
+        unverified.push(c);
+      }
+    }
+    if (unverified.length && cfg.network === "mainnet") {
+      const ok = confirm(`I could not check the content of ${unverified.length} inscription(s) automatically.\n\nOpen each one in UniSat and confirm the content says "op":"transfer" for ${cfg.tick} with amt ${amt}.\n\nSign anyway?`);
+      if (!ok) throw new Error("Cancelled. Check the inscriptions in UniSat first.");
+    }
     const listings: { coin: string; psbt: bitcoin.Psbt }[] = [];
     for (const [n, c] of coins.entries()) {
       const [txid, voutS] = c.split(":");
@@ -107,13 +126,21 @@ async function main() {
       box.style.display = "block";
       box.innerHTML = "<b>Tap the transfer inscription(s) you just created (newest first):</b>";
       if (!list.length) box.append(" none found.");
-      for (const i of list) {
+      const kinds = await Promise.all(list.map((i) => inscriptionKind(cfg.network, i.id)));
+      for (const [idx, i] of list.entries()) {
+        coinToId.set(i.coin, i.id);
+        const k = kinds[idx];
+        const label =
+          k.kind === "transfer" ? `  TRANSFER ${k.tick} ${k.amt}` :
+          k.kind === "deploy" ? "  DEPLOY inscription - do NOT sell" :
+          k.kind === "mint" ? "  mint inscription" :
+          k.kind === "other" ? "  other inscription" : "  (could not check - verify in UniSat)";
         const b = document.createElement("button");
         b.type = "button";
         b.className = "ghost";
         b.style.cssText = "display:block;margin:6px 0;width:100%;text-align:left";
-        const ok = i.offset === 0;
-        b.textContent = `#${i.number ?? "?"}  ${i.id.slice(0, 12)}...  coin ${i.coin.slice(0, 10)}...:${i.coin.split(":")[1]}${i.value ? `  (${i.value} sats)` : ""}${ok ? "" : "  - not on first sat, cannot use"}`;
+        const ok = i.offset === 0 && (k.kind === "transfer" || k.kind === "unknown");
+        b.textContent = `#${i.number ?? "?"}  ${i.id.slice(0, 12)}...${label}${i.offset === 0 ? "" : "  - not on first sat, cannot use"}`;
         b.disabled = !ok;
         b.onclick = () => {
           const ta = $<HTMLTextAreaElement>("coin");
