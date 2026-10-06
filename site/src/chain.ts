@@ -111,3 +111,17 @@ export async function lotBuyer(n: NetName, txid: string, vout: number): Promise<
   const tx = await get<{ vout: { scriptpubkey_address?: string }[] }>(n, `/tx/${o.txid}`);
   return tx.vout[0]?.scriptpubkey_address ?? null;
 }
+
+// Recent transactions of an address (mempool first, then confirmed, paged). A few requests instead of one per lot.
+export async function addressTxs(n: NetName, address: string, maxPages = 4) {
+  type Tx = { txid: string; vin: { txid: string; vout: number }[] };
+  const all: Tx[] = [];
+  let path = `/address/${address}/txs`;
+  for (let i = 0; i < maxPages; i++) {
+    const page = await get<Tx[]>(n, path);
+    all.push(...page);
+    if (page.length < 25) break;
+    path = `/address/${address}/txs/chain/${page[page.length - 1].txid}`;
+  }
+  return all;
+}

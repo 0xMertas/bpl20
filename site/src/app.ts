@@ -1,5 +1,5 @@
 import * as bitcoin from "bitcoinjs-lib";
-import { broadcast, feeRate, isSpent, lotBuyer, explorerTx, type Config } from "./chain";
+import { addressTxs, broadcast, feeRate, isSpent, explorerTx, type Config } from "./chain";
 import { buildBuyPsbt, finalizeAndExtract, networkFor, type Lot } from "./psbt";
 import { connect, existingAccount, hasWallet, onWalletChange, plainUtxos, unisat } from "./wallet";
 
@@ -10,15 +10,12 @@ let allLots: Lot[] = [];
 const claimButtons = new Map<string, HTMLButtonElement>();
 const maxClaims = () => cfg.maxClaimsPerWallet ?? 0; // 0 = no limit
 
-// How many lots this wallet already bought (read from the chain, so a page refresh cannot reset it).
+// How many lots this wallet already bought, read from the chain in a few requests (a refresh cannot reset it):
+// a claim spends one lot coin in a transaction that also spends the buyer's own coins.
 async function claimsUsedBy(address: string): Promise<number> {
-  let n = 0;
-  for (const l of allLots) {
-    try {
-      if ((await lotBuyer(cfg.network, l.utxo.txid, l.utxo.vout)) === address) n++;
-    } catch {}
-  }
-  return n;
+  const lotCoins = new Set(allLots.map((l) => `${l.utxo.txid}:${l.utxo.vout}`));
+  const txs = await addressTxs(cfg.network, address);
+  return txs.filter((t) => t.vin.some((v) => lotCoins.has(`${v.txid}:${v.vout}`))).length;
 }
 async function applyLimit() {
   const max = maxClaims();
@@ -37,6 +34,24 @@ const say = (msg: string, bad = false) => {
   el.textContent = msg;
   el.className = bad ? "bad" : "";
 };
+
+// Pick a random lot that is still free (checks only a few lots, not all of them).
+async function pickFreeLot(): Promise<Lot | null> {
+  const order = [...allLots].sort(() => Math.random() - 0.5).slice(0, 10);
+  for (const l of order) {
+    try {
+      if (!(await isSpent(cfg.network, l.utxo.txid, l.utxo.vout))) return l;
+    } catch {}
+  }
+  return null;
+}
+
+async function claimRandom() {
+  say("Finding a free lot...");
+  const lot = await pickFreeLot();
+  if (!lot) return say("No free lot found right now. They may all be claimed. Try again in a moment.", true);
+  return claim(lot);
+}
 
 async function claim(lot: Lot) {
   if (!me) return say("Connect your wallet first.", true);
@@ -60,7 +75,13 @@ async function claim(lot: Lot) {
     });
     const { hex, txid } = finalizeAndExtract(bitcoin.Psbt.fromHex(signedHex, { network: net }));
     say("Broadcasting...");
-    const sentTxid = await broadcast(cfg.network, hex);
+    let sentTxid: string;
+    try {
+      sentTxid = await broadcast(cfg.network, hex);
+    } catch (e: any) {
+      if (/conflict|missing|spent|already/i.test(String(e?.message))) throw new Error("Someone else took this lot a moment ago. Nothing was charged. Press Claim again.");
+      throw e;
+    }
     $("status").innerHTML = `Done! Your transfer inscription is on its way. <a href="${explorerTx(cfg.network, sentTxid || txid)}" target="_blank" rel="noopener">View transaction</a>`;
     $("status").className = "";
   } catch (e: any) {
@@ -127,7 +148,20 @@ async function main() {
         : `Each claim: ${Number(l0.amt).toLocaleString()} ${l0.tick} for ${l0.price.toLocaleString()} sats. The price includes a development fee that goes to the project creator, plus the cost of preparing your lot. You also pay the Bitcoin network fee. You see the exact total before you approve.${maxClaims() ? ` Limit: ${maxClaims()} claims per wallet (${maxClaims() * Number(l0.amt)} ${l0.tick} max), one lot per claim. Wait for a claim to confirm before the next one.` : ""}`;
     box.before(note);
   }
-  for (const lot of lots) {
+  if (same) {
+    const card = document.createElement("div");
+    card.className = "lot";
+    card.innerHTML = `<b>${Number(lots[0].amt).toLocaleString()} ${lots[0].tick}</b><span class="price-tok">${lots.length.toLocaleString()} lots listed</span>`;
+    const btn = document.createElement("button");
+    btn.textContent = "Claim";
+    btn.onclick = () => claimRandom();
+    card.append(btn);
+    box.append(card);
+    claimButtons.set("ALL", btn);
+    if (me) applyLimit();
+    return;
+  }
+  for (const lot of lots.slice(0, 50)) {
     const card = document.createElement("div");
     card.className = "lot";
     const perTok = lot.price / Number(lot.amt);
@@ -149,5 +183,6 @@ async function main() {
       })
       .catch(() => {});
   }
+  if (me) applyLimit();
 }
 main().catch((e) => say(e.message, true));
