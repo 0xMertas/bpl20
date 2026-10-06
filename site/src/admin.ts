@@ -35,6 +35,7 @@ async function sign(): Promise<boolean> {
     // Safety: never sign anything that is not a BRC-20 transfer of this ticker for the stated amount.
     const unverified: string[] = [];
     for (const c of coins) {
+      if (cfg.blockedCoins?.includes(c)) throw new Error(`STOP: ${c.slice(0, 12)}... is your DEPLOY coin and is blocked. Selling it would give away your ticker and NO tokens. Create a transfer in UniSat first (BRC-20 > ${cfg.tick} > Inscribe Transfer).`);
       const id = coinToId.get(c);
       const k = id ? await inscriptionKind(cfg.network, id) : ({ kind: "unknown" } as const);
       if (k.kind === "deploy") throw new Error(`STOP: ${c.slice(0, 12)}... is your DEPLOY inscription, not a transfer. Selling it would give away your ticker and NO tokens. Create a transfer in UniSat first (BRC-20 > ${cfg.tick} > Inscribe Transfer).`);
@@ -46,9 +47,8 @@ async function sign(): Promise<boolean> {
         unverified.push(c);
       }
     }
-    if (unverified.length && cfg.network === "mainnet") {
-      const ok = confirm(`I could not check the content of ${unverified.length} inscription(s) automatically.\n\nOpen each one in UniSat and confirm the content says "op":"transfer" for ${cfg.tick} with amt ${amt}.\n\nSign anyway?`);
-      if (!ok) throw new Error("Cancelled. Check the inscriptions in UniSat first.");
+    if (unverified.length) {
+      throw new Error(`Could not verify what ${unverified.length} selected coin(s) contain. Press "Load my newest inscriptions" and tap the inscription from the list, so the page can read it. For safety nothing was signed.`);
     }
     const listings: { coin: string; psbt: bitcoin.Psbt }[] = [];
     for (const [n, c] of coins.entries()) {

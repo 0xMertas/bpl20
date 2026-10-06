@@ -1,6 +1,8 @@
 // Read-only chain data from the free mempool.space API, plus the UniSat chain names.
+import { contentFromRevealTx } from "./inscription";
+
 export type NetName = "mainnet" | "testnet4" | "signet";
-export type Config = { network: NetName; tick: string; siteName: string; maxSupply?: string; disclosure?: string[]; showPrice?: boolean };
+export type Config = { network: NetName; tick: string; siteName: string; maxSupply?: string; disclosure?: string[]; showPrice?: boolean; blockedCoins?: string[] };
 
 const API: Record<NetName, string> = {
   mainnet: "https://mempool.space/api",
@@ -67,20 +69,37 @@ export type InscriptionKind =
   | { kind: "deploy" | "mint" | "other"; tick?: string }
   | { kind: "unknown" };
 
-// Reads an inscription's content to tell a BRC-20 transfer from a deploy/mint/other. Mainnet only; "unknown" if it cannot be read.
+// Reads an inscription's content to tell a BRC-20 transfer from a deploy/mint/other.
+// Primary source: the reveal transaction itself (explorer API). Fallback: Hiro. "unknown" if neither works.
 export async function inscriptionKind(n: NetName, id: string): Promise<InscriptionKind> {
-  if (n !== "mainnet" || !id) return { kind: "unknown" };
-  try {
-    const r = await fetch(`https://api.hiro.so/ordinals/v1/inscriptions/${id}/content`);
-    if (!r.ok) return { kind: "unknown" };
-    const j = JSON.parse(await r.text());
+  if (!id) return { kind: "unknown" };
+  const classify = (text: string): InscriptionKind => {
+    let j: any;
+    try {
+      j = JSON.parse(text);
+    } catch {
+      return { kind: "other" };
+    }
     if (String(j?.p).toLowerCase() !== "brc-20") return { kind: "other" };
     const tick = String(j.tick ?? "").toUpperCase();
     if (j.op === "transfer") return { kind: "transfer", tick, amt: String(j.amt ?? "") };
     if (j.op === "deploy") return { kind: "deploy", tick };
     if (j.op === "mint") return { kind: "mint", tick };
     return { kind: "other" };
-  } catch {
-    return { kind: "unknown" };
+  };
+  try {
+    const txid = id.slice(0, 64);
+    const r = await fetch(`${API[n]}/tx/${txid}/hex`);
+    if (r.ok) {
+      const c = contentFromRevealTx((await r.text()).trim(), id);
+      if (c) return classify(c.body);
+    }
+  } catch {}
+  if (n === "mainnet") {
+    try {
+      const r = await fetch(`https://api.hiro.so/ordinals/v1/inscriptions/${id}/content`);
+      if (r.ok) return classify(await r.text());
+    } catch {}
   }
+  return { kind: "unknown" };
 }

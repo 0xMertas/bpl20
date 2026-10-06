@@ -7833,9 +7833,9 @@ var require_p2tr = __commonJS({
         if (w && w.length > 1) {
           const controlBlock = w[w.length - 1];
           const leafVersion = controlBlock[0] & types_1.TAPLEAF_VERSION_MASK;
-          const script = w[w.length - 2];
+          const script2 = w[w.length - 2];
           const leafHash = (0, bip341_1.tapleafHash)({
-            output: script,
+            output: script2,
             version: leafVersion
           });
           return (0, bip341_1.rootHashFromPath)(controlBlock, leafHash);
@@ -7992,9 +7992,9 @@ var require_p2tr = __commonJS({
             if (!(0, ecc_lib_1.getEccLib)().isXOnlyPoint(internalPubkey))
               throw new TypeError("Invalid internalPubkey for p2tr witness");
             const leafVersion = controlBlock[0] & types_1.TAPLEAF_VERSION_MASK;
-            const script = witness[witness.length - 2];
+            const script2 = witness[witness.length - 2];
             const leafHash = (0, bip341_1.tapleafHash)({
-              output: script,
+              output: script2,
               version: leafVersion
             });
             const hash = (0, bip341_1.rootHashFromPath)(controlBlock, leafHash);
@@ -8303,7 +8303,7 @@ var require_transaction = __commonJS({
     function isOutput(out) {
       return out.value !== void 0;
     }
-    var Transaction2 = class _Transaction {
+    var Transaction3 = class _Transaction {
       constructor() {
         this.version = 1;
         this.locktime = 0;
@@ -8733,17 +8733,17 @@ var require_transaction = __commonJS({
         return buffer;
       }
     };
-    exports.Transaction = Transaction2;
-    Transaction2.DEFAULT_SEQUENCE = 4294967295;
-    Transaction2.SIGHASH_DEFAULT = 0;
-    Transaction2.SIGHASH_ALL = 1;
-    Transaction2.SIGHASH_NONE = 2;
-    Transaction2.SIGHASH_SINGLE = 3;
-    Transaction2.SIGHASH_ANYONECANPAY = 128;
-    Transaction2.SIGHASH_OUTPUT_MASK = 3;
-    Transaction2.SIGHASH_INPUT_MASK = 128;
-    Transaction2.ADVANCED_TRANSACTION_MARKER = 0;
-    Transaction2.ADVANCED_TRANSACTION_FLAG = 1;
+    exports.Transaction = Transaction3;
+    Transaction3.DEFAULT_SEQUENCE = 4294967295;
+    Transaction3.SIGHASH_DEFAULT = 0;
+    Transaction3.SIGHASH_ALL = 1;
+    Transaction3.SIGHASH_NONE = 2;
+    Transaction3.SIGHASH_SINGLE = 3;
+    Transaction3.SIGHASH_ANYONECANPAY = 128;
+    Transaction3.SIGHASH_OUTPUT_MASK = 3;
+    Transaction3.SIGHASH_INPUT_MASK = 128;
+    Transaction3.ADVANCED_TRANSACTION_MARKER = 0;
+    Transaction3.ADVANCED_TRANSACTION_FLAG = 1;
   }
 });
 
@@ -9401,9 +9401,9 @@ var require_tapLeafScript = __commonJS({
           "Decode Error: tapLeafScript bad leaf version in key 0x" + keyVal.key.toString("hex")
         );
       }
-      const script = keyVal.value.slice(0, -1);
+      const script2 = keyVal.value.slice(0, -1);
       const controlBlock = keyVal.key.slice(1);
-      return { controlBlock, script, leafVersion };
+      return { controlBlock, script: script2, leafVersion };
     }
     exports.decode = decode;
     function encode(tScript) {
@@ -9680,23 +9680,23 @@ var require_witnessUtxo = __commonJS({
       let _offset = 8;
       const scriptLen = varuint.decode(keyVal.value, _offset);
       _offset += varuint.encodingLength(scriptLen);
-      const script = keyVal.value.slice(_offset);
-      if (script.length !== scriptLen) {
+      const script2 = keyVal.value.slice(_offset);
+      if (script2.length !== scriptLen) {
         throw new Error("Decode Error: WITNESS_UTXO script is not proper length");
       }
       return {
-        script,
+        script: script2,
         value
       };
     }
     exports.decode = decode;
     function encode(data) {
-      const { script, value } = data;
-      const varintLen = varuint.encodingLength(script.length);
-      const result = import_buffer.Buffer.allocUnsafe(8 + varintLen + script.length);
+      const { script: script2, value } = data;
+      const varintLen = varuint.encodingLength(script2.length);
+      const result = import_buffer.Buffer.allocUnsafe(8 + varintLen + script2.length);
       tools_1.writeUInt64LE(result, value, 0);
-      varuint.encode(script.length, result, 8);
-      script.copy(result, 8 + varintLen);
+      varuint.encode(script2.length, result, 8);
+      script2.copy(result, 8 + varintLen);
       return {
         key: import_buffer.Buffer.from([typeFields_1.InputTypes.WITNESS_UTXO]),
         value: result
@@ -10988,9 +10988,9 @@ var require_psbtutils = __commonJS({
     var crypto_1 = require_crypto2();
     var payments = require_payments();
     function isPaymentFactory(payment) {
-      return (script) => {
+      return (script2) => {
         try {
-          payment({ output: script });
+          payment({ output: script2 });
           return true;
         } catch (err) {
           return false;
@@ -11027,10 +11027,10 @@ var require_psbtutils = __commonJS({
       return buffer;
     }
     exports.witnessStackToScriptWitness = witnessStackToScriptWitness;
-    function pubkeyPositionInScript(pubkey, script) {
+    function pubkeyPositionInScript(pubkey, script2) {
       const pubkeyHash = (0, crypto_1.hash160)(pubkey);
       const pubkeyXOnly = pubkey.slice(1, 33);
-      const decompiled = bscript.decompile(script);
+      const decompiled = bscript.decompile(script2);
       if (decompiled === null) throw new Error("Unknown script error");
       return decompiled.findIndex((element) => {
         if (typeof element === "number") return false;
@@ -11038,8 +11038,8 @@ var require_psbtutils = __commonJS({
       });
     }
     exports.pubkeyPositionInScript = pubkeyPositionInScript;
-    function pubkeyInScript(pubkey, script) {
-      return pubkeyPositionInScript(pubkey, script) !== -1;
+    function pubkeyInScript(pubkey, script2) {
+      return pubkeyPositionInScript(pubkey, script2) !== -1;
     }
     exports.pubkeyInScript = pubkeyInScript;
     function checkInputForSig(input, action) {
@@ -11131,8 +11131,8 @@ var require_bip371 = __commonJS({
       return input && !!(input.tapInternalKey || input.tapMerkleRoot || input.tapLeafScript && input.tapLeafScript.length || input.tapBip32Derivation && input.tapBip32Derivation.length || input.witnessUtxo && (0, psbtutils_1.isP2TR)(input.witnessUtxo.script));
     }
     exports.isTaprootInput = isTaprootInput;
-    function isTaprootOutput(output, script) {
-      return output && !!(output.tapInternalKey || output.tapTree || output.tapBip32Derivation && output.tapBip32Derivation.length || script && (0, psbtutils_1.isP2TR)(script));
+    function isTaprootOutput(output, script2) {
+      return output && !!(output.tapInternalKey || output.tapTree || output.tapBip32Derivation && output.tapBip32Derivation.length || script2 && (0, psbtutils_1.isP2TR)(script2));
     }
     exports.isTaprootOutput = isTaprootOutput;
     function checkTaprootInputFields(inputData, newInputData, action) {
@@ -11151,8 +11151,8 @@ var require_bip371 = __commonJS({
       const tapTree = newOutputData.tapTree || outputData.tapTree;
       if (tapInternalKey) {
         const { script: scriptPubkey } = outputData;
-        const script = getTaprootScripPubkey(tapInternalKey, tapTree);
-        if (scriptPubkey && !scriptPubkey.equals(script))
+        const script2 = getTaprootScripPubkey(tapInternalKey, tapTree);
+        if (scriptPubkey && !scriptPubkey.equals(script2))
           throw new Error("Error adding output. Script or address missmatch.");
       }
     }
@@ -11320,12 +11320,12 @@ var require_bip371 = __commonJS({
       });
       return (input.tapScriptSig || []).filter((tss) => tss.leafHash.equals(leafHash)).map((tss) => addPubkeyPositionInScript(tapLeaf.script, tss)).sort((t1, t2) => t2.positionInScript - t1.positionInScript).map((t) => t.signature);
     }
-    function addPubkeyPositionInScript(script, tss) {
+    function addPubkeyPositionInScript(script2, tss) {
       return Object.assign(
         {
           positionInScript: (0, psbtutils_1.pubkeyPositionInScript)(
             tss.pubkey,
-            script
+            script2
           )
         },
         tss
@@ -11553,8 +11553,8 @@ var require_psbt2 = __commonJS({
         const { address: address3 } = outputData;
         if (typeof address3 === "string") {
           const { network } = this.opts;
-          const script = (0, address_1.toOutputScript)(address3, network);
-          outputData = Object.assign({}, outputData, { script });
+          const script2 = (0, address_1.toOutputScript)(address3, network);
+          outputData = Object.assign({}, outputData, { script: script2 });
         }
         (0, bip371_1.checkTaprootOutputFields)(outputData, outputData, "addOutput");
         const c = this.__CACHE;
@@ -11614,17 +11614,17 @@ var require_psbt2 = __commonJS({
         throw new Error(`Cannot finalize input #${inputIndex}. Not Taproot.`);
       }
       _finalizeInput(inputIndex, input, finalScriptsFunc = getFinalScripts) {
-        const { script, isP2SH, isP2WSH, isSegwit } = getScriptFromInput(
+        const { script: script2, isP2SH, isP2WSH, isSegwit } = getScriptFromInput(
           inputIndex,
           input,
           this.__CACHE
         );
-        if (!script) throw new Error(`No script found for input #${inputIndex}`);
+        if (!script2) throw new Error(`No script found for input #${inputIndex}`);
         checkPartialSigSighashes(input);
         const { finalScriptSig, finalScriptWitness } = finalScriptsFunc(
           inputIndex,
           input,
-          script,
+          script2,
           isSegwit,
           isP2SH,
           isP2WSH
@@ -11664,9 +11664,9 @@ var require_psbt2 = __commonJS({
       }
       getInputType(inputIndex) {
         const input = (0, utils_1.checkForInput)(this.data.inputs, inputIndex);
-        const script = getScriptFromUtxo(inputIndex, input, this.__CACHE);
+        const script2 = getScriptFromUtxo(inputIndex, input, this.__CACHE);
         const result = getMeaningfulScript(
-          script,
+          script2,
           inputIndex,
           "input",
           input.redeemScript || redeemFromFinalScriptSig(input.finalScriptSig),
@@ -11726,7 +11726,7 @@ var require_psbt2 = __commonJS({
         let sighashCache;
         for (const pSig of mySigs) {
           const sig = bscript.signature.decode(pSig.signature);
-          const { hash, script } = sighashCache !== sig.hashType ? getHashForSig(
+          const { hash, script: script2 } = sighashCache !== sig.hashType ? getHashForSig(
             inputIndex,
             Object.assign({}, input, { sighashType: sig.hashType }),
             this.__CACHE,
@@ -11734,8 +11734,8 @@ var require_psbt2 = __commonJS({
           ) : { hash: hashCache, script: scriptCache };
           sighashCache = sig.hashType;
           hashCache = hash;
-          scriptCache = script;
-          checkScriptForPubkey(pSig.pubkey, script, "verify");
+          scriptCache = script2;
+          checkScriptForPubkey(pSig.pubkey, script2, "verify");
           results.push(validator(pSig.pubkey, hash, sig.signature));
         }
         return results.every((res) => res === true);
@@ -12189,14 +12189,14 @@ var require_psbt2 = __commonJS({
         return this.tx.toBuffer();
       }
     };
-    function canFinalize(input, script, scriptType) {
+    function canFinalize(input, script2, scriptType) {
       switch (scriptType) {
         case "pubkey":
         case "pubkeyhash":
         case "witnesspubkeyhash":
           return hasSigs(1, input.partialSig);
         case "multisig":
-          const p2ms = payments.p2ms({ output: script });
+          const p2ms = payments.p2ms({ output: script2 });
           return hasSigs(p2ms.m, input.partialSig, p2ms.pubkeys);
         default:
           return false;
@@ -12263,8 +12263,8 @@ var require_psbt2 = __commonJS({
         }
       });
     }
-    function checkScriptForPubkey(pubkey, script, action) {
-      if (!(0, psbtutils_1.pubkeyInScript)(pubkey, script)) {
+    function checkScriptForPubkey(pubkey, script2, action) {
+      if (!(0, psbtutils_1.pubkeyInScript)(pubkey, script2)) {
         throw new Error(
           `Can not ${action} for this input with the key ${pubkey.toString("hex")}`
         );
@@ -12322,12 +12322,12 @@ var require_psbt2 = __commonJS({
       if (key === "__FEE_RATE") return c.__FEE_RATE;
       else if (key === "__FEE") return c.__FEE;
     }
-    function getFinalScripts(inputIndex, input, script, isSegwit, isP2SH, isP2WSH) {
-      const scriptType = classifyScript(script);
-      if (!canFinalize(input, script, scriptType))
+    function getFinalScripts(inputIndex, input, script2, isSegwit, isP2SH, isP2WSH) {
+      const scriptType = classifyScript(script2);
+      if (!canFinalize(input, script2, scriptType))
         throw new Error(`Can not finalize input #${inputIndex}`);
       return prepareFinalScripts(
-        script,
+        script2,
         scriptType,
         input.partialSig,
         isSegwit,
@@ -12335,10 +12335,10 @@ var require_psbt2 = __commonJS({
         isP2WSH
       );
     }
-    function prepareFinalScripts(script, scriptType, partialSig, isSegwit, isP2SH, isP2WSH) {
+    function prepareFinalScripts(script2, scriptType, partialSig, isSegwit, isP2SH, isP2WSH) {
       let finalScriptSig;
       let finalScriptWitness;
-      const payment = getPayment(script, scriptType, partialSig);
+      const payment = getPayment(script2, scriptType, partialSig);
       const p2wsh = !isP2WSH ? null : payments.p2wsh({ redeem: payment });
       const p2sh = !isP2SH ? null : payments.p2sh({ redeem: p2wsh || payment });
       if (isSegwit) {
@@ -12368,14 +12368,14 @@ var require_psbt2 = __commonJS({
     }
     function getHashAndSighashType(inputs, inputIndex, pubkey, cache, sighashTypes) {
       const input = (0, utils_1.checkForInput)(inputs, inputIndex);
-      const { hash, sighashType, script } = getHashForSig(
+      const { hash, sighashType, script: script2 } = getHashForSig(
         inputIndex,
         input,
         cache,
         false,
         sighashTypes
       );
-      checkScriptForPubkey(pubkey, script, "sign");
+      checkScriptForPubkey(pubkey, script2, "sign");
       return {
         hash,
         sighashType
@@ -12470,8 +12470,8 @@ var require_psbt2 = __commonJS({
       return allHashes.flat();
     }
     function getPrevoutTaprootKey(inputIndex, input, cache) {
-      const { script } = getScriptAndAmountFromUtxo(inputIndex, input, cache);
-      return (0, psbtutils_1.isP2TR)(script) ? script.subarray(2, 34) : null;
+      const { script: script2 } = getScriptAndAmountFromUtxo(inputIndex, input, cache);
+      return (0, psbtutils_1.isP2TR)(script2) ? script2.subarray(2, 34) : null;
     }
     function trimTaprootSig(signature) {
       return signature.length === 64 ? signature : signature.subarray(0, 64);
@@ -12530,32 +12530,32 @@ var require_psbt2 = __commonJS({
         );
       }
     }
-    function getPayment(script, scriptType, partialSig) {
+    function getPayment(script2, scriptType, partialSig) {
       let payment;
       switch (scriptType) {
         case "multisig":
-          const sigs = getSortedSigs(script, partialSig);
+          const sigs = getSortedSigs(script2, partialSig);
           payment = payments.p2ms({
-            output: script,
+            output: script2,
             signatures: sigs
           });
           break;
         case "pubkey":
           payment = payments.p2pk({
-            output: script,
+            output: script2,
             signature: partialSig[0].signature
           });
           break;
         case "pubkeyhash":
           payment = payments.p2pkh({
-            output: script,
+            output: script2,
             pubkey: partialSig[0].pubkey,
             signature: partialSig[0].signature
           });
           break;
         case "witnesspubkeyhash":
           payment = payments.p2wpkh({
-            output: script,
+            output: script2,
             pubkey: partialSig[0].pubkey,
             signature: partialSig[0].signature
           });
@@ -12621,8 +12621,8 @@ var require_psbt2 = __commonJS({
       });
       return signers;
     }
-    function getSortedSigs(script, partialSig) {
-      const p2ms = payments.p2ms({ output: script });
+    function getSortedSigs(script2, partialSig) {
+      const p2ms = payments.p2ms({ output: script2 });
       return p2ms.pubkeys.map((pk) => {
         return (partialSig.filter((ps) => {
           return ps.pubkey.equals(pk);
@@ -12729,8 +12729,8 @@ var require_psbt2 = __commonJS({
       return c[inputIndex];
     }
     function getScriptFromUtxo(inputIndex, input, cache) {
-      const { script } = getScriptAndAmountFromUtxo(inputIndex, input, cache);
-      return script;
+      const { script: script2 } = getScriptAndAmountFromUtxo(inputIndex, input, cache);
+      return script2;
     }
     function getScriptAndAmountFromUtxo(inputIndex, input, cache) {
       if (input.witnessUtxo !== void 0) {
@@ -12751,9 +12751,9 @@ var require_psbt2 = __commonJS({
       }
     }
     function pubkeyInInput(pubkey, input, inputIndex, cache) {
-      const script = getScriptFromUtxo(inputIndex, input, cache);
+      const script2 = getScriptFromUtxo(inputIndex, input, cache);
       const { meaningfulScript } = getMeaningfulScript(
-        script,
+        script2,
         inputIndex,
         "input",
         input.redeemScript,
@@ -12762,9 +12762,9 @@ var require_psbt2 = __commonJS({
       return (0, psbtutils_1.pubkeyInScript)(pubkey, meaningfulScript);
     }
     function pubkeyInOutput(pubkey, output, outputIndex, cache) {
-      const script = cache.__TX.outs[outputIndex].script;
+      const script2 = cache.__TX.outs[outputIndex].script;
       const { meaningfulScript } = getMeaningfulScript(
-        script,
+        script2,
         outputIndex,
         "output",
         output.redeemScript,
@@ -12807,10 +12807,10 @@ var require_psbt2 = __commonJS({
     function isSigLike(buf) {
       return bscript.isCanonicalScriptSignature(buf);
     }
-    function getMeaningfulScript(script, index, ioType, redeemScript, witnessScript) {
-      const isP2SH = (0, psbtutils_1.isP2SHScript)(script);
+    function getMeaningfulScript(script2, index, ioType, redeemScript, witnessScript) {
+      const isP2SH = (0, psbtutils_1.isP2SHScript)(script2);
       const isP2SHP2WSH = isP2SH && redeemScript && (0, psbtutils_1.isP2WSHScript)(redeemScript);
-      const isP2WSH = (0, psbtutils_1.isP2WSHScript)(script);
+      const isP2WSH = (0, psbtutils_1.isP2WSHScript)(script2);
       if (isP2SH && redeemScript === void 0)
         throw new Error("scriptPubkey is P2SH but redeemScript missing");
       if ((isP2WSH || isP2SHP2WSH) && witnessScript === void 0)
@@ -12820,34 +12820,34 @@ var require_psbt2 = __commonJS({
       let meaningfulScript;
       if (isP2SHP2WSH) {
         meaningfulScript = witnessScript;
-        checkRedeemScript(index, script, redeemScript, ioType);
+        checkRedeemScript(index, script2, redeemScript, ioType);
         checkWitnessScript(index, redeemScript, witnessScript, ioType);
         checkInvalidP2WSH(meaningfulScript);
       } else if (isP2WSH) {
         meaningfulScript = witnessScript;
-        checkWitnessScript(index, script, witnessScript, ioType);
+        checkWitnessScript(index, script2, witnessScript, ioType);
         checkInvalidP2WSH(meaningfulScript);
       } else if (isP2SH) {
         meaningfulScript = redeemScript;
-        checkRedeemScript(index, script, redeemScript, ioType);
+        checkRedeemScript(index, script2, redeemScript, ioType);
       } else {
-        meaningfulScript = script;
+        meaningfulScript = script2;
       }
       return {
         meaningfulScript,
         type: isP2SHP2WSH ? "p2sh-p2wsh" : isP2SH ? "p2sh" : isP2WSH ? "p2wsh" : "raw"
       };
     }
-    function checkInvalidP2WSH(script) {
-      if ((0, psbtutils_1.isP2WPKH)(script) || (0, psbtutils_1.isP2SHScript)(script)) {
+    function checkInvalidP2WSH(script2) {
+      if ((0, psbtutils_1.isP2WPKH)(script2) || (0, psbtutils_1.isP2SHScript)(script2)) {
         throw new Error("P2WPKH or P2SH can not be contained within P2WSH");
       }
     }
-    function classifyScript(script) {
-      if ((0, psbtutils_1.isP2WPKH)(script)) return "witnesspubkeyhash";
-      if ((0, psbtutils_1.isP2PKH)(script)) return "pubkeyhash";
-      if ((0, psbtutils_1.isP2MS)(script)) return "multisig";
-      if ((0, psbtutils_1.isP2PK)(script)) return "pubkey";
+    function classifyScript(script2) {
+      if ((0, psbtutils_1.isP2WPKH)(script2)) return "witnesspubkeyhash";
+      if ((0, psbtutils_1.isP2PKH)(script2)) return "pubkeyhash";
+      if ((0, psbtutils_1.isP2MS)(script2)) return "multisig";
+      if ((0, psbtutils_1.isP2PK)(script2)) return "pubkey";
       return "nonstandard";
     }
     function range(n) {
@@ -12871,8 +12871,8 @@ var require_src2 = __commonJS({
     exports.networks = networks2;
     var payments = require_payments();
     exports.payments = payments;
-    var script = require_script();
-    exports.script = script;
+    var script2 = require_script();
+    exports.script = script2;
     var block_1 = require_block();
     Object.defineProperty(exports, "Block", {
       enumerable: true,
@@ -17742,10 +17742,50 @@ var require_dist2 = __commonJS({
 
 // src/admin.ts
 init_buffer_shim();
-var bitcoin3 = __toESM(require_src2(), 1);
+var bitcoin4 = __toESM(require_src2(), 1);
 
 // src/chain.ts
 init_buffer_shim();
+
+// src/inscription.ts
+init_buffer_shim();
+var bitcoin = __toESM(require_src2(), 1);
+var OP_ENDIF = 104;
+var OP_1 = 81;
+function parseEnvelope(script2) {
+  const chunks = bitcoin.script.decompile(script2);
+  if (!chunks) return null;
+  const at = chunks.findIndex((c) => import_buffer.Buffer.isBuffer(c) && c.toString() === "ord");
+  if (at < 0) return null;
+  let contentType = "";
+  let body = [];
+  for (let i = at + 1; i < chunks.length; i++) {
+    const c = chunks[i];
+    if (c === OP_ENDIF) break;
+    if (c === OP_1 || import_buffer.Buffer.isBuffer(c) && c.length === 1 && c[0] === 1) {
+      const v = chunks[++i];
+      if (import_buffer.Buffer.isBuffer(v)) contentType = v.toString();
+    } else if (c === 0 || import_buffer.Buffer.isBuffer(c) && c.length === 0) {
+      for (i++; i < chunks.length && chunks[i] !== OP_ENDIF; i++) {
+        const b = chunks[i];
+        if (import_buffer.Buffer.isBuffer(b)) body.push(b);
+      }
+      break;
+    }
+  }
+  return { contentType, body: import_buffer.Buffer.concat(body) };
+}
+function contentFromRevealTx(rawHex, id) {
+  const m = /^[0-9a-f]{64}i(\d+)$/i.exec(id);
+  if (!m) return null;
+  const tx = bitcoin.Transaction.fromHex(rawHex);
+  const w = tx.ins[Number(m[1])]?.witness;
+  if (!w || w.length < 3) return null;
+  const env = parseEnvelope(w[w.length - 2]);
+  return env ? { contentType: env.contentType, body: env.body.toString("utf8") } : null;
+}
+
+// src/chain.ts
 var API = {
   mainnet: "https://mempool.space/api",
   testnet4: "https://mempool.space/testnet4/api",
@@ -17780,20 +17820,38 @@ async function btcUsd() {
   return p.USD;
 }
 async function inscriptionKind(n, id) {
-  if (n !== "mainnet" || !id) return { kind: "unknown" };
-  try {
-    const r = await fetch(`https://api.hiro.so/ordinals/v1/inscriptions/${id}/content`);
-    if (!r.ok) return { kind: "unknown" };
-    const j = JSON.parse(await r.text());
+  if (!id) return { kind: "unknown" };
+  const classify = (text) => {
+    let j;
+    try {
+      j = JSON.parse(text);
+    } catch {
+      return { kind: "other" };
+    }
     if (String(j?.p).toLowerCase() !== "brc-20") return { kind: "other" };
     const tick = String(j.tick ?? "").toUpperCase();
     if (j.op === "transfer") return { kind: "transfer", tick, amt: String(j.amt ?? "") };
     if (j.op === "deploy") return { kind: "deploy", tick };
     if (j.op === "mint") return { kind: "mint", tick };
     return { kind: "other" };
+  };
+  try {
+    const txid = id.slice(0, 64);
+    const r = await fetch(`${API[n]}/tx/${txid}/hex`);
+    if (r.ok) {
+      const c = contentFromRevealTx((await r.text()).trim(), id);
+      if (c) return classify(c.body);
+    }
   } catch {
-    return { kind: "unknown" };
   }
+  if (n === "mainnet") {
+    try {
+      const r = await fetch(`https://api.hiro.so/ordinals/v1/inscriptions/${id}/content`);
+      if (r.ok) return classify(await r.text());
+    } catch {
+    }
+  }
+  return { kind: "unknown" };
 }
 
 // src/pricing.ts
@@ -17820,42 +17878,42 @@ function fixedPrice(priceUsd, feeRate2, btcUsd2) {
 
 // src/psbt.ts
 init_buffer_shim();
-var bitcoin = __toESM(require_src2(), 1);
+var bitcoin2 = __toESM(require_src2(), 1);
 var import_secp256k1 = __toESM(require_dist2(), 1);
-bitcoin.initEccLib(import_secp256k1.default);
-var SIGHASH_SINGLE_ACP = bitcoin.Transaction.SIGHASH_SINGLE | bitcoin.Transaction.SIGHASH_ANYONECANPAY;
+bitcoin2.initEccLib(import_secp256k1.default);
+var SIGHASH_SINGLE_ACP = bitcoin2.Transaction.SIGHASH_SINGLE | bitcoin2.Transaction.SIGHASH_ANYONECANPAY;
 var DUST = 546;
 var FAKE_TXID = "00".repeat(31) + "01";
 function xonly(pubkeyHex) {
   const p = import_buffer.Buffer.from(pubkeyHex, "hex");
   return p.length === 33 ? p.subarray(1, 33) : p;
 }
-function kind(script) {
-  if (script.length === 34 && script[0] === 81 && script[1] === 32) return "p2tr";
-  if (script.length === 22 && script[0] === 0 && script[1] === 20) return "p2wpkh";
+function kind(script2) {
+  if (script2.length === 34 && script2[0] === 81 && script2[1] === 32) return "p2tr";
+  if (script2.length === 22 && script2[0] === 0 && script2[1] === 20) return "p2wpkh";
   return null;
 }
 function buildListingPsbt(a) {
-  const script = bitcoin.address.toOutputScript(a.seller, a.network);
-  if (!script.equals(import_buffer.Buffer.from(a.utxo.scriptPk, "hex"))) {
+  const script2 = bitcoin2.address.toOutputScript(a.seller, a.network);
+  if (!script2.equals(import_buffer.Buffer.from(a.utxo.scriptPk, "hex"))) {
     throw new Error("The inscription coin is not at the connected wallet address");
   }
-  const k = kind(script);
+  const k = kind(script2);
   if (!k) throw new Error("Seller address must be taproot (bc1p/tb1p) or native segwit (bc1q/tb1q)");
   if (a.price < DUST) throw new Error("Price is below the dust limit");
-  const psbt = new bitcoin.Psbt({ network: a.network });
-  psbt.addInput({ hash: FAKE_TXID, index: 0, witnessUtxo: { script, value: DUST } });
+  const psbt = new bitcoin2.Psbt({ network: a.network });
+  psbt.addInput({ hash: FAKE_TXID, index: 0, witnessUtxo: { script: script2, value: DUST } });
   const real = {
     hash: a.utxo.txid,
     index: a.utxo.vout,
-    witnessUtxo: { script, value: a.utxo.value },
+    witnessUtxo: { script: script2, value: a.utxo.value },
     sighashType: SIGHASH_SINGLE_ACP
   };
   if (k === "p2tr") real.tapInternalKey = xonly(a.sellerPubkeyHex);
   psbt.addInput(real);
-  psbt.addOutput({ script, value: DUST });
+  psbt.addOutput({ script: script2, value: DUST });
   const payTo = a.payTo?.trim() || a.seller;
-  bitcoin.address.toOutputScript(payTo, a.network);
+  bitcoin2.address.toOutputScript(payTo, a.network);
   psbt.addOutput({ address: payTo, value: a.price });
   return psbt;
 }
@@ -17881,7 +17939,7 @@ function readWitness(w) {
   return items;
 }
 function readSignedListing(psbtB64, network) {
-  const psbt = bitcoin.Psbt.fromBase64(psbtB64, { network });
+  const psbt = bitcoin2.Psbt.fromBase64(psbtB64, { network });
   if (psbt.inputCount !== 2 || psbt.txOutputs.length !== 2) throw new Error("Not a listing PSBT");
   const inp = psbt.data.inputs[1];
   const tx = psbt.txInputs[1];
@@ -17924,7 +17982,7 @@ function verifyListing(psbtB64, network) {
   return psbt.validateSignaturesOfInput(1, validator);
 }
 function networkFor(name) {
-  return name === "mainnet" ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
+  return name === "mainnet" ? bitcoin2.networks.bitcoin : bitcoin2.networks.testnet;
 }
 function lotFromSigned(line, network) {
   if (!/^\d+$/.test(line.amt)) throw new Error("bad amt");
@@ -17936,7 +17994,7 @@ function lotFromSigned(line, network) {
     amt: line.amt,
     price: l.price,
     devFee: line.devFee !== void 0 ? Math.min(line.devFee, l.price) : void 0,
-    seller: bitcoin.address.fromOutputScript(l.sellerScript, network),
+    seller: bitcoin2.address.fromOutputScript(l.sellerScript, network),
     utxo: l.utxo,
     psbt: line.psbt
   };
@@ -17944,7 +18002,7 @@ function lotFromSigned(line, network) {
 
 // src/wallet.ts
 init_buffer_shim();
-var bitcoin2 = __toESM(require_src2(), 1);
+var bitcoin3 = __toESM(require_src2(), 1);
 var unisat = () => {
   const u = window.unisat;
   if (!u) throw new Error("UniSat wallet not found. Install the UniSat extension from https://unisat.io/download, then reload this page.");
@@ -18003,6 +18061,7 @@ async function sign() {
     const net = networkFor(cfg.network);
     const unverified = [];
     for (const c of coins) {
+      if (cfg.blockedCoins?.includes(c)) throw new Error(`STOP: ${c.slice(0, 12)}... is your DEPLOY coin and is blocked. Selling it would give away your ticker and NO tokens. Create a transfer in UniSat first (BRC-20 > ${cfg.tick} > Inscribe Transfer).`);
       const id = coinToId.get(c);
       const k = id ? await inscriptionKind(cfg.network, id) : { kind: "unknown" };
       if (k.kind === "deploy") throw new Error(`STOP: ${c.slice(0, 12)}... is your DEPLOY inscription, not a transfer. Selling it would give away your ticker and NO tokens. Create a transfer in UniSat first (BRC-20 > ${cfg.tick} > Inscribe Transfer).`);
@@ -18014,13 +18073,8 @@ async function sign() {
         unverified.push(c);
       }
     }
-    if (unverified.length && cfg.network === "mainnet") {
-      const ok = confirm(`I could not check the content of ${unverified.length} inscription(s) automatically.
-
-Open each one in UniSat and confirm the content says "op":"transfer" for ${cfg.tick} with amt ${amt}.
-
-Sign anyway?`);
-      if (!ok) throw new Error("Cancelled. Check the inscriptions in UniSat first.");
+    if (unverified.length) {
+      throw new Error(`Could not verify what ${unverified.length} selected coin(s) contain. Press "Load my newest inscriptions" and tap the inscription from the list, so the page can read it. For safety nothing was signed.`);
     }
     const listings = [];
     for (const [n, c] of coins.entries()) {
@@ -18057,7 +18111,7 @@ Sign anyway?`);
       }
     }
     listings.forEach((l, n) => {
-      const b64 = bitcoin3.Psbt.fromHex(signed[n], { network: net }).toBase64();
+      const b64 = bitcoin4.Psbt.fromHex(signed[n], { network: net }).toBase64();
       if (!verifyListing(b64, net)) throw new Error(`The wallet's signature for lot ${n + 1} did not verify. Nothing was saved.`);
       lines.push(JSON.stringify({ tick: cfg.tick, amt, psbt: b64, coin: l.coin, devFee }));
     });

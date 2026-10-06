@@ -176,3 +176,28 @@ test("fixed $2.20 price: profit depends on the fee rate", () => {
   assert.equal(lo.profit, 954);
   assert.ok(fixedPrice(2.2, 10, 100000).profit < 0, "loss when the mempool is busy");
 });
+
+import { contentFromRevealTx, parseEnvelope } from "../src/inscription";
+function revealTx(json: string, contentType = "text/plain;charset=utf-8") {
+  const script = bitcoin.script.compile([
+    Buffer.alloc(32, 7), bitcoin.opcodes.OP_CHECKSIG, bitcoin.opcodes.OP_FALSE, bitcoin.opcodes.OP_IF,
+    Buffer.from("ord"), Buffer.from([1]), Buffer.from(contentType), bitcoin.opcodes.OP_0, Buffer.from(json), bitcoin.opcodes.OP_ENDIF,
+  ]);
+  const tx = new bitcoin.Transaction();
+  tx.addInput(Buffer.alloc(32, 1), 0);
+  tx.addOutput(Buffer.from("5120" + "11".repeat(32), "hex"), 330);
+  tx.setWitness(0, [Buffer.alloc(64, 2), script, Buffer.alloc(33, 3)]);
+  return { hex: tx.toHex(), txid: tx.getId() };
+}
+test("reads inscription content from a reveal transaction", () => {
+  const deploy = '{"p":"brc-20","op":"deploy","tick":"WORLDX","max":"21000000","self_mint":"true"}';
+  const t = revealTx(deploy);
+  const c = contentFromRevealTx(t.hex, t.txid + "i0");
+  assert.ok(c);
+  assert.equal(c!.contentType, "text/plain;charset=utf-8");
+  assert.equal(JSON.parse(c!.body).op, "deploy");
+  const tr = revealTx('{"p":"brc-20","op":"transfer","tick":"WORLDX","amt":"1000"}');
+  assert.equal(JSON.parse(contentFromRevealTx(tr.hex, tr.txid + "i0")!.body).op, "transfer");
+  assert.equal(contentFromRevealTx(t.hex, "nonsense"), null);
+  assert.equal(parseEnvelope(Buffer.from([0x51])), null);
+});
