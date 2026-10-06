@@ -14,7 +14,7 @@
     "e15794936ec9c2d8ae79288a72dde23052b2010328553b986bed73f94dc65772:0"
   ],
   "lotCost": {
-    "vbytes": 350,
+    "vbytes": 183,
     "postage": 330,
     "serviceFee": 3150
   },
@@ -22,5 +22,5 @@
   "deployTxid": "e15794936ec9c2d8ae79288a72dde23052b2010328553b986bed73f94dc65772",
   "payoutAddress": "bc1pc25xrh85hpxay6qad8u2zzyvzjj546jgwzs90aw9q9knnlt6sc3s4mqxd9",
   "claimFeeRate": 1.5,
-  "inscribeFeeRate": 1.5
+  "inscribeFeeRate": 1
 }
