@@ -17948,6 +17948,9 @@ async function sign() {
     const amt = $("amt").value.trim();
     const payTo = $("payto").value.trim() || void 0;
     if (!/^\d+$/.test(amt) || !Number.isInteger(price) || price <= 0) throw new Error("Check amount and price");
+    const rate = Number($("rate").value);
+    if (!(rate > 0)) throw new Error("Enter the fee rate (sat/vB) you paid for the lots, so the development fee can be worked out");
+    const devFee = Math.max(0, price - lotCostSats(rate));
     const seen = new Set(lines.map((l) => JSON.parse(l).coin));
     const net = networkFor(cfg.network);
     const listings = [];
@@ -17987,7 +17990,7 @@ async function sign() {
     listings.forEach((l, n) => {
       const b64 = bitcoin3.Psbt.fromHex(signed[n], { network: net }).toBase64();
       if (!verifyListing(b64, net)) throw new Error(`The wallet's signature for lot ${n + 1} did not verify. Nothing was saved.`);
-      lines.push(JSON.stringify({ tick: cfg.tick, amt, psbt: b64, coin: l.coin }));
+      lines.push(JSON.stringify({ tick: cfg.tick, amt, psbt: b64, coin: l.coin, devFee }));
     });
     $("out").textContent = lines.join("\n");
     $("dl").disabled = false;

@@ -21,7 +21,8 @@ let bad = 0;
 for (const f of files) {
   readFileSync(f, "utf8").split("\n").filter((l) => l.trim()).forEach((line, n) => {
     try {
-      const { tick, amt, psbt } = JSON.parse(line);
+      const { tick, amt, psbt, devFee } = JSON.parse(line);
+      if (devFee !== undefined && !(Number.isInteger(devFee) && devFee >= 0)) throw new Error("bad devFee");
       if (!/^\d+$/.test(amt)) throw new Error("bad amt");
       if (!verifyListing(psbt, net)) throw new Error("signature does not verify");
       const l = readSignedListing(psbt, net);
@@ -29,7 +30,7 @@ for (const f of files) {
       if (lots.has(key)) throw new Error("duplicate coin");
       lots.set(key, {
         id: `${tick}-${l.utxo.txid.slice(0, 8)}-${l.utxo.vout}`,
-        tick, amt, price: l.price,
+        tick, amt, price: l.price, devFee: devFee !== undefined ? Math.min(devFee, l.price) : undefined,
         seller: bitcoin.address.fromOutputScript(l.sellerScript, net),
         utxo: l.utxo, psbt,
       });

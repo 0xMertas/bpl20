@@ -2,7 +2,7 @@
 // Your wallet signs; no key is ever typed here.
 import * as bitcoin from "bitcoinjs-lib";
 import { btcUsd, feeRate as fetchFee, getOutput, isSpent, type Config } from "./chain";
-import { fixedPrice, suggestPrice } from "./pricing";
+import { fixedPrice, lotCostSats, suggestPrice } from "./pricing";
 import { SIGHASH_SINGLE_ACP, buildListingPsbt, networkFor, verifyListing } from "./psbt";
 import { connect, unisat } from "./wallet";
 
@@ -25,6 +25,9 @@ async function sign() {
     const amt = $<HTMLInputElement>("amt").value.trim();
     const payTo = $<HTMLInputElement>("payto").value.trim() || undefined;
     if (!/^\d+$/.test(amt) || !Number.isInteger(price) || price <= 0) throw new Error("Check amount and price");
+    const rate = Number($<HTMLInputElement>("rate").value);
+    if (!(rate > 0)) throw new Error("Enter the fee rate (sat/vB) you paid for the lots, so the development fee can be worked out");
+    const devFee = Math.max(0, price - lotCostSats(rate)); // what is left of the price after your cost to prepare the lot
     const seen = new Set(lines.map((l) => JSON.parse(l).coin));
 
     const net = networkFor(cfg.network);
@@ -61,7 +64,7 @@ async function sign() {
     listings.forEach((l, n) => {
       const b64 = bitcoin.Psbt.fromHex(signed[n], { network: net }).toBase64();
       if (!verifyListing(b64, net)) throw new Error(`The wallet's signature for lot ${n + 1} did not verify. Nothing was saved.`);
-      lines.push(JSON.stringify({ tick: cfg.tick, amt, psbt: b64, coin: l.coin }));
+      lines.push(JSON.stringify({ tick: cfg.tick, amt, psbt: b64, coin: l.coin, devFee }));
     });
     $("out").textContent = lines.join("\n");
     $<HTMLButtonElement>("dl").disabled = false;

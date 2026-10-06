@@ -125,7 +125,7 @@ test("build-lots CLI keeps valid lots and skips bad/duplicate ones", () => {
   const f = join(dir, "signed.jsonl");
   const bad = { tick: "ABCDE", amt: "1000", psbt: good.psbt.slice(0, -8) + "AAAAAAAA" };
   writeFileSync(f, [
-    JSON.stringify({ tick: "ABCDE", amt: "1000", psbt: good.psbt }),
+    JSON.stringify({ tick: "ABCDE", amt: "1000", psbt: good.psbt, devFee: 1200 }),
     JSON.stringify({ tick: "ABCDE", amt: "1000", psbt: good.psbt }), // duplicate
     JSON.stringify(bad),
   ].join("\n"));
@@ -134,6 +134,7 @@ test("build-lots CLI keeps valid lots and skips bad/duplicate ones", () => {
   const lots = JSON.parse(readFileSync(out, "utf8"));
   assert.equal(lots.length, 1);
   assert.equal(lots[0].price, 20000);
+  assert.equal(lots[0].devFee, 1200);
   assert.equal(lots[0].seller, s.sellerPay.address);
 });
 

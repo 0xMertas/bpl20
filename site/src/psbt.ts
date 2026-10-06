@@ -22,6 +22,7 @@ export type Lot = {
   tick: string;
   amt: string;
   price: number; // sats the seller receives
+  devFee?: number; // part of price that is the development fee (the rest covers preparing the lot)
   seller: string; // seller address
   utxo: OwnedUtxo; // the coin carrying the transfer inscription (inscription on its first sat)
   psbt: string; // base64, seller-signed on input 1
