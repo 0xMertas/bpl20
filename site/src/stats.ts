@@ -1,38 +1,34 @@
-import { parseHolders, parseToken } from "./stats-data";
-import type { Config } from "./chain";
+// Public stats page: facts from this site's own data plus the chain (no third-party token indexer needed).
+import { explorerTx, isSpent, type Config } from "./chain";
+import type { Lot } from "./psbt";
 
-const API = "https://api.hiro.so/ordinals/v1/brc-20/tokens";
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
-const short = (a: string) => (a.length > 16 ? a.slice(0, 8) + "..." + a.slice(-6) : a);
-const fmt = (s: string) => Number(s).toLocaleString("en-US", { maximumFractionDigits: 8 });
+const num = (n: number | string) => Number(n).toLocaleString("en-US");
+
+async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < items.length; i += limit) out.push(...(await Promise.all(items.slice(i, i + limit).map(fn))));
+  return out;
+}
 
 async function main() {
-  const cfg: Config = await (await fetch("config.json")).json();
-  const tick = (new URLSearchParams(location.search).get("tick") || cfg.tick).toLowerCase();
-  $("title").textContent = `${tick.toUpperCase()} stats`;
-  if (cfg.network !== "mainnet") {
-    $("body").textContent =
-      "Stats come from a public BRC-20 indexer, which only covers mainnet. This site is in test mode, so there is nothing to show yet.";
-    return;
-  }
-  const r = await fetch(`${API}/${encodeURIComponent(tick)}`);
-  if (r.status === 404) {
-    $("body").textContent = `No BRC-20 token "${tick.toUpperCase()}" found yet. It appears after your deploy confirms and is indexed.`;
-    return;
-  }
-  if (!r.ok) throw new Error(`Indexer error ${r.status}`);
-  const t = parseToken(await r.json());
-  const hr = await fetch(`${API}/${encodeURIComponent(tick)}/holders?limit=10`);
-  const h = hr.ok ? parseHolders(await hr.json(), t.minted) : { total: t.holders ?? 0, holders: [] };
+  const cfg: Config & { deployTxid?: string } = await (await fetch("config.json")).json();
+  const lots: Lot[] = await (await fetch("lots.json", { cache: "no-store" })).json();
+  $("title").textContent = `${cfg.tick} stats`;
 
-  $("body").innerHTML = `
-    <div class="lot"><b>Max supply</b><span>${fmt(t.max)}</span></div>
-    <div class="lot"><b>Minted</b><span>${fmt(t.minted)}${t.percentMinted != null ? ` (${t.percentMinted.toFixed(2)}%)` : ""}</span></div>
-    ${t.mintLimit ? `<div class="lot"><b>Limit per mint</b><span>${fmt(t.mintLimit)}</span></div>` : ""}
-    <div class="lot"><b>Holders</b><span>${(t.holders ?? h.total).toLocaleString()}</span></div>
-    <h2>Top holders</h2>
-    ${h.holders.map((x, i) => `<div class="lot"><b>${i + 1}. ${short(x.address)}</b><span>${fmt(x.balance)}${x.percent != null ? ` (${x.percent.toFixed(2)}%)` : ""}</span></div>`).join("") || "<p>No holder data.</p>"}
-    <small>Data from the Hiro Ordinals indexer. Balances can lag a few blocks behind the chain.</small>`;
+  const per = lots[0] ? Number(lots[0].amt) : 1000;
+  const sold = (await mapLimit(lots, 8, (l) => isSpent(cfg.network, l.utxo.txid, l.utxo.vout).catch(() => false))).filter(Boolean).length;
+  const row = (a: string, b: string) => `<div class="lot"><b>${a}</b><span>${b}</span></div>`;
+  $("body").innerHTML =
+    row("Ticker", cfg.tick) +
+    (cfg.maxSupply ? row("Total supply", num(cfg.maxSupply)) : "") +
+    row("Tokens per claim", num(per)) +
+    row("Lots listed", num(lots.length)) +
+    row("Lots claimed", num(sold)) +
+    row("Lots still available", num(lots.length - sold)) +
+    row("Tokens claimed so far", num(sold * per)) +
+    (cfg.deployTxid ? `<p><a href="${explorerTx(cfg.network, cfg.deployTxid)}" target="_blank" rel="noopener">View the deploy transaction</a></p>` : "") +
+    `<small>Numbers come from this site's lot list and the Bitcoin chain. The creator holds the rest of the supply.</small>`;
 }
 main().catch((e) => {
   $("body").textContent = e.message;

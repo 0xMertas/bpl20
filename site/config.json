@@ -18,5 +18,6 @@
     "postage": 330,
     "serviceFee": 3150
   },
-  "maxClaimsPerWallet": 3
+  "maxClaimsPerWallet": 3,
+  "deployTxid": "e15794936ec9c2d8ae79288a72dde23052b2010328553b986bed73f94dc65772"
 }
