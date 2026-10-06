@@ -17,5 +17,6 @@
     "vbytes": 350,
     "postage": 330,
     "serviceFee": 3150
-  }
+  },
+  "maxClaimsPerWallet": 3
 }

@@ -2,7 +2,7 @@
 import { contentFromRevealTx } from "./inscription";
 
 export type NetName = "mainnet" | "testnet4" | "signet";
-export type Config = { network: NetName; tick: string; siteName: string; maxSupply?: string; disclosure?: string[]; showPrice?: boolean; blockedCoins?: string[]; lotCost?: { vbytes: number; postage: number; serviceFee: number } };
+export type Config = { network: NetName; tick: string; siteName: string; maxSupply?: string; disclosure?: string[]; showPrice?: boolean; blockedCoins?: string[]; lotCost?: { vbytes: number; postage: number; serviceFee: number }; maxClaimsPerWallet?: number };
 
 const API: Record<NetName, string> = {
   mainnet: "https://mempool.space/api",
@@ -102,4 +102,12 @@ export async function inscriptionKind(n: NetName, id: string): Promise<Inscripti
     } catch {}
   }
   return { kind: "unknown" };
+}
+
+// Who bought a sold lot: output 0 of the transaction that spent the lot's coin is the buyer (see the claim transaction layout).
+export async function lotBuyer(n: NetName, txid: string, vout: number): Promise<string | null> {
+  const o = await get<{ spent: boolean; txid?: string }>(n, `/tx/${txid}/outspend/${vout}`);
+  if (!o.spent || !o.txid) return null;
+  const tx = await get<{ vout: { scriptpubkey_address?: string }[] }>(n, `/tx/${o.txid}`);
+  return tx.vout[0]?.scriptpubkey_address ?? null;
 }

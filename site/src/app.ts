@@ -1,11 +1,36 @@
 import * as bitcoin from "bitcoinjs-lib";
-import { broadcast, feeRate, isSpent, explorerTx, type Config } from "./chain";
+import { broadcast, feeRate, isSpent, lotBuyer, explorerTx, type Config } from "./chain";
 import { buildBuyPsbt, finalizeAndExtract, networkFor, type Lot } from "./psbt";
 import { connect, existingAccount, hasWallet, onWalletChange, plainUtxos, unisat } from "./wallet";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 let cfg: Config;
 let me: { address: string; pubkeyHex: string } | null = null;
+let allLots: Lot[] = [];
+const claimButtons = new Map<string, HTMLButtonElement>();
+const maxClaims = () => cfg.maxClaimsPerWallet ?? 0; // 0 = no limit
+
+// How many lots this wallet already bought (read from the chain, so a page refresh cannot reset it).
+async function claimsUsedBy(address: string): Promise<number> {
+  let n = 0;
+  for (const l of allLots) {
+    try {
+      if ((await lotBuyer(cfg.network, l.utxo.txid, l.utxo.vout)) === address) n++;
+    } catch {}
+  }
+  return n;
+}
+async function applyLimit() {
+  const max = maxClaims();
+  if (!max || !me) return;
+  const used = await claimsUsedBy(me.address);
+  if (used >= max) {
+    claimButtons.forEach((b) => { if (!b.disabled) { b.disabled = true; b.textContent = "Limit reached"; } });
+    say(`This wallet already claimed ${used} of ${max} allowed lots (${used * Number(allLots[0]?.amt ?? 0)} ${cfg.tick}).`);
+  } else {
+    say(`Wallet connected. You can claim ${max - used} more lot(s) (limit ${max} per wallet).`);
+  }
+}
 
 const say = (msg: string, bad = false) => {
   const el = $("status");
@@ -17,6 +42,7 @@ async function claim(lot: Lot) {
   if (!me) return say("Connect your wallet first.", true);
   try {
     const net = networkFor(cfg.network);
+    if (maxClaims() && (await claimsUsedBy(me.address)) >= maxClaims()) throw new Error(`Limit reached: ${maxClaims()} claims per wallet.`);
     say("Checking the lot is still available...");
     if (await isSpent(cfg.network, lot.utxo.txid, lot.utxo.vout)) throw new Error("Sorry, this lot was just sold.");
     const [utxos, rate] = await Promise.all([plainUtxos(cfg.network, me.address), feeRate(cfg.network)]);
@@ -67,6 +93,7 @@ async function main() {
     try {
       setMe(await connect(cfg.network));
       say("Wallet connected.");
+      await applyLimit();
     } catch (e: any) {
       say(e?.message ?? String(e), true);
     }
@@ -74,7 +101,7 @@ async function main() {
   if (!hasWallet()) {
     $("status").innerHTML = 'UniSat wallet not found. <a href="https://unisat.io/download" target="_blank" rel="noopener">Install UniSat</a>, then reload this page.';
   } else {
-    existingAccount(cfg.network).then((w) => w && setMe(w));
+    existingAccount(cfg.network).then((w) => { if (w) { setMe(w); applyLimit(); } });
     onWalletChange(async (what) => {
       setMe(null);
       say(what === "network" ? `Network changed. Press Connect UniSat to continue on ${cfg.network}.` : "Account changed. Press Connect UniSat to continue.");
@@ -84,6 +111,7 @@ async function main() {
 
   $("disclosure").innerHTML = (cfg.disclosure ?? []).map((t) => `<p>${t.replace(/</g, "&lt;")}</p>`).join("");
   const lots: Lot[] = await (await fetch("lots.json", { cache: "no-store" })).json();
+  allLots = lots;
   const box = $("lots");
   box.textContent = lots.length ? "" : "No lots are available right now. Follow the official account for the next release.";
   // One plain price line when every lot is the same (clean page), per-lot prices only if lots differ.
@@ -95,8 +123,8 @@ async function main() {
     note.textContent = cfg.showPrice === false
       ? `Each claim gives you ${Number(l0.amt).toLocaleString()} ${l0.tick}. Claiming requires a payment plus the Bitcoin network fee. The exact amount is shown to you before you approve, and again in your wallet.`
       : l0.devFee !== undefined
-        ? `Each claim: ${Number(l0.amt).toLocaleString()} ${l0.tick} for ${l0.price.toLocaleString()} sats = ${l0.devFee.toLocaleString()} sats development fee (goes to the project creator) + ${(l0.price - l0.devFee).toLocaleString()} sats transfer cost (preparing your lot, depends on the mempool). You also pay your own Bitcoin network fee. You see the exact total before you approve.`
-        : `Each claim: ${Number(l0.amt).toLocaleString()} ${l0.tick} for ${l0.price.toLocaleString()} sats. The price includes a development fee that goes to the project creator, plus the cost of preparing your lot. You also pay the Bitcoin network fee. You see the exact total before you approve.`;
+        ? `Each claim: ${Number(l0.amt).toLocaleString()} ${l0.tick} for ${l0.price.toLocaleString()} sats = ${l0.devFee.toLocaleString()} sats development fee (goes to the project creator) + ${(l0.price - l0.devFee).toLocaleString()} sats transfer cost (preparing your lot, depends on the mempool). You also pay your own Bitcoin network fee. You see the exact total before you approve.${maxClaims() ? ` Limit: ${maxClaims()} claims per wallet (${maxClaims() * Number(l0.amt)} ${l0.tick} max).` : ""}`
+        : `Each claim: ${Number(l0.amt).toLocaleString()} ${l0.tick} for ${l0.price.toLocaleString()} sats. The price includes a development fee that goes to the project creator, plus the cost of preparing your lot. You also pay the Bitcoin network fee. You see the exact total before you approve.${maxClaims() ? ` Limit: ${maxClaims()} claims per wallet (${maxClaims() * Number(l0.amt)} ${l0.tick} max).` : ""}`;
     box.before(note);
   }
   for (const lot of lots) {
@@ -111,6 +139,7 @@ async function main() {
     btn.onclick = () => claim(lot);
     card.append(btn);
     box.append(card);
+    claimButtons.set(lot.id, btn);
     isSpent(cfg.network, lot.utxo.txid, lot.utxo.vout)
       .then((sold) => {
         if (sold) {
