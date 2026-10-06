@@ -18041,11 +18041,19 @@ async function main() {
   const lots = await (await fetch("lots.json", { cache: "no-store" })).json();
   const box = $("lots");
   box.textContent = lots.length ? "" : "No lots are available right now. Follow the official account for the next release.";
+  const same = lots.length > 0 && lots.every((l) => l.price === lots[0].price && l.amt === lots[0].amt);
+  if (same) {
+    const l0 = lots[0];
+    const note = document.createElement("p");
+    note.className = "note";
+    note.textContent = `Each claim: ${Number(l0.amt).toLocaleString()} ${l0.tick} for ${l0.price.toLocaleString()} sats, plus the Bitcoin network fee. You see the exact total before you approve.`;
+    box.before(note);
+  }
   for (const lot of lots) {
     const card = document.createElement("div");
     card.className = "lot";
     const perTok = lot.price / Number(lot.amt);
-    card.innerHTML = `<b>${Number(lot.amt).toLocaleString()} ${lot.tick}</b><span>${lot.price.toLocaleString()} sats<span class="price-tok">${perTok.toFixed(perTok < 1 ? 3 : 1)} sats / token + network fee</span></span>`;
+    card.innerHTML = same ? `<b>${Number(lot.amt).toLocaleString()} ${lot.tick}</b>` : `<b>${Number(lot.amt).toLocaleString()} ${lot.tick}</b><span>${lot.price.toLocaleString()} sats<span class="price-tok">${perTok.toFixed(perTok < 1 ? 3 : 1)} sats / token + network fee</span></span>`;
     const btn = document.createElement("button");
     btn.textContent = "Claim";
     btn.onclick = () => claim(lot);
