@@ -19,5 +19,6 @@
     "serviceFee": 3150
   },
   "maxClaimsPerWallet": 3,
-  "deployTxid": "e15794936ec9c2d8ae79288a72dde23052b2010328553b986bed73f94dc65772"
+  "deployTxid": "e15794936ec9c2d8ae79288a72dde23052b2010328553b986bed73f94dc65772",
+  "payoutAddress": "bc1pc25xrh85hpxay6qad8u2zzyvzjj546jgwzs90aw9q9knnlt6sc3s4mqxd9"
 }
