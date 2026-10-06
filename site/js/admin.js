@@ -18027,8 +18027,10 @@ async function sign() {
     $("dl").disabled = false;
     $("dllots").disabled = false;
     say(`${listings.length} lot(s) signed and verified (${lines.length} so far). Download when done.`);
+    return true;
   } catch (e) {
     say(e?.message ?? String(e), true);
+    return false;
   }
 }
 async function main() {
@@ -18046,6 +18048,11 @@ async function main() {
   const cfgPay = cfg.payoutAddress;
   if (cfgPay) $("payto").value = cfgPay;
   $("sign").onclick = sign;
+  const updateSel = () => {
+    const n = $("coin").value.split("\n").map((l) => l.trim()).filter(Boolean).length;
+    $("selcount").textContent = `${n} lot${n === 1 ? "" : "s"} selected`;
+  };
+  $("coin").addEventListener("input", updateSel);
   $("load").onclick = async () => {
     try {
       if (!me) throw new Error("Connect your wallet first.");
@@ -18066,6 +18073,7 @@ async function main() {
         b.onclick = () => {
           const ta = $("coin");
           if (!ta.value.split("\n").includes(i.coin)) ta.value = (ta.value ? ta.value.trim() + "\n" : "") + i.coin;
+          updateSel();
           b.textContent = "added: " + b.textContent;
           b.disabled = true;
         };
@@ -18132,6 +18140,25 @@ async function main() {
   $("usefixed").onclick = () => {
     if (fixedSats) $("price").value = String(fixedSats);
   };
+  const mode = () => document.querySelector('input[name="mode"]:checked').value;
+  const readout = () => {
+    $("readout").textContent = (mode() === "fixed" ? $("fixedinfo").textContent : $("suggest").textContent) ?? "";
+  };
+  for (const id of ["rate", "btc", "profit", "fixed"]) $(id).addEventListener("input", readout);
+  document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", readout));
+  $("go").onclick = async () => {
+    try {
+      recalc();
+      recalcFixed();
+      const sats = mode() === "fixed" ? fixedSats : suggested;
+      if (!sats) throw new Error("The price has not loaded yet. Open Advanced and type the fee rate and the BTC price.");
+      $("price").value = String(sats);
+      if (!await sign()) return;
+      await $("dllots").onclick();
+    } catch (e) {
+      say(e?.message ?? String(e), true);
+    }
+  };
   $("usesug").onclick = () => {
     if (suggested) $("price").value = String(suggested);
   };
@@ -18140,6 +18167,7 @@ async function main() {
     $("btc").value = String(Math.round(usd));
     recalc();
     recalcFixed();
+    readout();
   }).catch(() => $("suggest").textContent = "Could not load live data. Type the fee rate and BTC price yourself.");
   $("dl").onclick = () => {
     const a = document.createElement("a");

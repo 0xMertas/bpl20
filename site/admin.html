@@ -5,35 +5,67 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Seller</title>
 <link rel="stylesheet" href="style.css">
+<style>
+ .step { background:var(--card); border-radius:12px; padding:16px 18px; margin:14px 0; }
+ .step h2 { margin:0 0 8px; font-size:18px; }
+ .step h2 span { display:inline-block; background:var(--acc); color:#111; border-radius:50%; width:28px; height:28px; text-align:center; line-height:28px; margin-right:8px; font-size:15px; }
+ .big { width:100%; padding:16px; font-size:18px; }
+ label.opt { display:block; margin:8px 0; color:var(--fg); font-size:16px; cursor:pointer; }
+ #readout { font-weight:600; margin:10px 0 0; }
+ details { margin:20px 0; } summary { cursor:pointer; color:var(--mut); }
+</style>
 </head>
 <body>
 <main>
   <h1>Seller: create lots</h1>
   <div id="net"></div>
-  <p>Connect the wallet that holds your BRC-20 <b>transfer inscriptions</b>. For each one, enter its coin and the price. Your wallet signs a lot; nothing is sent.</p>
-  <div class="row"><button id="connect">Connect UniSat</button></div>
-  <label for="coin">Inscription coins, one per line (txid:vout). Each line becomes one lot.</label>
-  <div class="row"><button class="ghost" id="load" type="button">Load my newest inscriptions</button></div>
-  <div id="insclist" class="note" style="display:none"></div>
-  <textarea id="coin" rows="4" placeholder="64-hex-txid:0" autocomplete="off" style="width:100%;padding:10px;margin:4px 0 12px;border-radius:8px;border:1px solid var(--mut);background:var(--card);color:var(--fg);font:inherit"></textarea>
-  <label for="amt">Token amount in that transfer inscription</label>
-  <input id="amt" inputmode="numeric" placeholder="1000" value="1000">
-  <label for="payto">Payout address (where buyers' payments go; leave empty to use the connected wallet). Public address only, never a key.</label>
-  <input id="payto" placeholder="bc1p... or bc1q..." autocomplete="off">
-  <div class="note" id="calc">
-    <b>Price calculator</b>
-    <p>Fee rate you pay when inscribing (sat/vB): <input id="rate" inputmode="decimal" style="width:90px"> &nbsp;BTC price (USD): <input id="btc" inputmode="decimal" style="width:120px"> &nbsp;Profit per lot (USD): <input id="profit" inputmode="decimal" value="1.20" style="width:80px"></p>
-    <p id="suggest">Loading current fee rate and BTC price...</p>
-    <button class="ghost" id="usesug" type="button">Use suggested price</button>
-    <p>Fixed price per lot (USD): <input id="fixed" inputmode="decimal" value="2.20" style="width:80px"></p>
-    <p id="fixedinfo"></p>
-    <button class="ghost" id="usefixed" type="button">Use fixed price</button>
+  <p>Four steps. Your wallet only signs; nothing is sent.</p>
+
+  <div class="step"><h2><span>1</span>Connect your wallet</h2>
+    <button id="connect" class="big">Connect UniSat</button>
   </div>
-  <label for="price">Price in sats (must cover buyer fees; see README)</label>
-  <input id="price" inputmode="numeric" placeholder="20000">
-  <div class="row"><button id="sign">Sign lot</button><button id="dl" class="ghost" disabled>Download signed-lots.jsonl</button><button id="dllots" disabled>Download lots.json</button></div>
+
+  <div class="step"><h2><span>2</span>Pick your transfer inscriptions</h2>
+    <p style="color:var(--mut);margin:0 0 8px">First create them in UniSat: BRC-20 &rarr; WORLDX &rarr; Inscribe Transfer &rarr; 1000, then wait for it to confirm.</p>
+    <button class="big ghost" id="load" type="button">Load my newest inscriptions</button>
+    <div id="insclist" class="note" style="display:none"></div>
+    <p id="selcount" style="font-weight:600;margin:10px 0 0">0 lots selected</p>
+  </div>
+
+  <div class="step"><h2><span>3</span>Choose your price</h2>
+    <label class="opt"><input type="radio" name="mode" value="profit" checked> Keep exactly <b>$1.20</b> profit per lot (price follows the mempool)</label>
+    <label class="opt"><input type="radio" name="mode" value="fixed"> Fixed price <b>$2.20</b> per lot</label>
+    <p id="readout">Loading current fee rate and BTC price...</p>
+  </div>
+
+  <div class="step"><h2><span>4</span>Sign and save</h2>
+    <button id="go" class="big">Sign lots &amp; download lots.json</button>
+    <p style="color:var(--mut);margin:10px 0 0">Then put the downloaded <b>lots.json</b> in your <b>worldx</b> folder (replace the old one) and refresh the claim page.</p>
+  </div>
+
   <div id="status"></div>
-  <pre id="out"></pre>
+
+  <details><summary>Advanced</summary>
+    <label for="coin">Inscription coins, one per line (txid:vout). Each line becomes one lot.</label>
+    <textarea id="coin" rows="4" placeholder="64-hex-txid:0" autocomplete="off" style="width:100%;padding:10px;margin:4px 0 12px;border-radius:8px;border:1px solid var(--mut);background:var(--card);color:var(--fg);font:inherit"></textarea>
+    <label for="amt">Token amount in each transfer inscription</label>
+    <input id="amt" inputmode="numeric" placeholder="1000" value="1000">
+    <label for="payto">Payout address (where buyers' payments go; leave empty to use the connected wallet). Public address only, never a key.</label>
+    <input id="payto" placeholder="bc1p... or bc1q..." autocomplete="off">
+    <div class="note" id="calc">
+      <b>Price calculator</b>
+      <p>Fee rate you pay when inscribing (sat/vB): <input id="rate" inputmode="decimal" style="width:90px"> &nbsp;BTC price (USD): <input id="btc" inputmode="decimal" style="width:120px"> &nbsp;Profit per lot (USD): <input id="profit" inputmode="decimal" value="1.20" style="width:80px"></p>
+      <p id="suggest">Loading...</p>
+      <button class="ghost" id="usesug" type="button">Use suggested price</button>
+      <p>Fixed price per lot (USD): <input id="fixed" inputmode="decimal" value="2.20" style="width:80px"></p>
+      <p id="fixedinfo"></p>
+      <button class="ghost" id="usefixed" type="button">Use fixed price</button>
+    </div>
+    <label for="price">Price in sats</label>
+    <input id="price" inputmode="numeric" placeholder="2446">
+    <div class="row"><button id="sign" class="ghost">Sign lots only</button><button id="dl" class="ghost" disabled>Download signed-lots.jsonl</button><button id="dllots" class="ghost" disabled>Download lots.json</button></div>
+    <pre id="out"></pre>
+  </details>
 </main>
 <script type="module" src="js/admin.js"></script>
 </body>

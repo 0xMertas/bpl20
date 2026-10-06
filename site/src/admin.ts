@@ -16,7 +16,7 @@ const say = (msg: string, bad = false) => {
   $("status").className = bad ? "bad" : "";
 };
 
-async function sign() {
+async function sign(): Promise<boolean> {
   try {
     if (!me) throw new Error("Connect your wallet first.");
     const coins = $<HTMLTextAreaElement>("coin").value.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -70,8 +70,10 @@ async function sign() {
     $<HTMLButtonElement>("dl").disabled = false;
     $<HTMLButtonElement>("dllots").disabled = false;
     say(`${listings.length} lot(s) signed and verified (${lines.length} so far). Download when done.`);
+    return true;
   } catch (e: any) {
     say(e?.message ?? String(e), true);
+    return false;
   }
 }
 
@@ -90,6 +92,11 @@ async function main() {
   const cfgPay = (cfg as any).payoutAddress as string | undefined;
   if (cfgPay) $<HTMLInputElement>("payto").value = cfgPay;
   $("sign").onclick = sign;
+  const updateSel = () => {
+    const n = $<HTMLTextAreaElement>("coin").value.split("\n").map((l) => l.trim()).filter(Boolean).length;
+    $("selcount").textContent = `${n} lot${n === 1 ? "" : "s"} selected`;
+  };
+  $("coin").addEventListener("input", updateSel);
 
   $("load").onclick = async () => {
     try {
@@ -111,6 +118,7 @@ async function main() {
         b.onclick = () => {
           const ta = $<HTMLTextAreaElement>("coin");
           if (!ta.value.split("\n").includes(i.coin)) ta.value = (ta.value ? ta.value.trim() + "\n" : "") + i.coin;
+          updateSel();
           b.textContent = "added: " + b.textContent;
           b.disabled = true;
         };
@@ -179,6 +187,25 @@ async function main() {
   $("usefixed").onclick = () => {
     if (fixedSats) $<HTMLInputElement>("price").value = String(fixedSats);
   };
+  const mode = () => (document.querySelector('input[name="mode"]:checked') as HTMLInputElement).value;
+  const readout = () => {
+    $("readout").textContent = (mode() === "fixed" ? $("fixedinfo").textContent : $("suggest").textContent) ?? "";
+  };
+  for (const id of ["rate", "btc", "profit", "fixed"]) $(id).addEventListener("input", readout);
+  document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", readout));
+  $("go").onclick = async () => {
+    try {
+      recalc();
+      recalcFixed();
+      const sats = mode() === "fixed" ? fixedSats : suggested;
+      if (!sats) throw new Error("The price has not loaded yet. Open Advanced and type the fee rate and the BTC price.");
+      $<HTMLInputElement>("price").value = String(sats);
+      if (!(await sign())) return;
+      await ($("dllots") as any).onclick();
+    } catch (e: any) {
+      say(e?.message ?? String(e), true);
+    }
+  };
   $("usesug").onclick = () => {
     if (suggested) $<HTMLInputElement>("price").value = String(suggested);
   };
@@ -188,6 +215,7 @@ async function main() {
       $<HTMLInputElement>("btc").value = String(Math.round(usd));
       recalc();
       recalcFixed();
+      readout();
     })
     .catch(() => ($("suggest").textContent = "Could not load live data. Type the fee rate and BTC price yourself."));
   $("dl").onclick = () => {
