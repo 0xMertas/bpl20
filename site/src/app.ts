@@ -1,7 +1,7 @@
 import * as bitcoin from "bitcoinjs-lib";
 import { broadcast, feeRate, isSpent, explorerTx, type Config } from "./chain";
 import { buildBuyPsbt, finalizeAndExtract, networkFor, type Lot } from "./psbt";
-import { connect, plainUtxos, unisat } from "./wallet";
+import { connect, existingAccount, hasWallet, onWalletChange, plainUtxos, unisat } from "./wallet";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 let cfg: Config;
@@ -59,15 +59,27 @@ async function main() {
   $("title").textContent = cfg.siteName;
   $("net").textContent = cfg.network === "mainnet" ? "" : `TEST MODE (${cfg.network}). No real money.`;
 
+  const setMe = (w: { address: string; pubkeyHex: string } | null) => {
+    me = w;
+    $("connect").textContent = w ? w.address.slice(0, 8) + "..." + w.address.slice(-6) : "Connect UniSat";
+  };
   $("connect").onclick = async () => {
     try {
-      me = await connect(cfg.network);
-      $("connect").textContent = me.address.slice(0, 8) + "..." + me.address.slice(-6);
+      setMe(await connect(cfg.network));
       say("Wallet connected.");
     } catch (e: any) {
       say(e?.message ?? String(e), true);
     }
   };
+  if (!hasWallet()) {
+    $("status").innerHTML = 'UniSat wallet not found. <a href="https://unisat.io/download" target="_blank" rel="noopener">Install UniSat</a>, then reload this page.';
+  } else {
+    existingAccount(cfg.network).then((w) => w && setMe(w));
+    onWalletChange(async (what) => {
+      setMe(null);
+      say(what === "network" ? `Network changed. Press Connect UniSat to continue on ${cfg.network}.` : "Account changed. Press Connect UniSat to continue.");
+    });
+  }
   $("prepare").onclick = prepare;
 
   $("disclosure").innerHTML = (cfg.disclosure ?? []).map((t) => `<p>${t.replace(/</g, "&lt;")}</p>`).join("");

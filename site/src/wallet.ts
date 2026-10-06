@@ -6,6 +6,9 @@ import type { OwnedUtxo } from "./psbt";
 
 type Unisat = {
   requestAccounts(): Promise<string[]>;
+  getAccounts?(): Promise<string[]>;
+  on?(event: string, cb: (...a: any[]) => void): void;
+  removeListener?(event: string, cb: (...a: any[]) => void): void;
   getPublicKey(): Promise<string>;
   getChain?(): Promise<{ enum: string }>;
   switchChain?(c: string): Promise<unknown>;
@@ -18,7 +21,7 @@ type Unisat = {
 
 export const unisat = (): Unisat => {
   const u = (window as any).unisat;
-  if (!u) throw new Error("UniSat wallet not found. Install the UniSat extension and reload.");
+  if (!u) throw new Error("UniSat wallet not found. Install the UniSat extension from https://unisat.io/download, then reload this page.");
   return u;
 };
 
@@ -67,4 +70,30 @@ export async function plainUtxos(net: NetName, address: string): Promise<OwnedUt
   return (await addressUtxos(net, address))
     .filter((c) => c.value >= 1000 && !bad.has(`${c.txid}:${c.vout}`))
     .map((c) => ({ txid: c.txid, vout: c.vout, value: c.value, scriptPk: script }));
+}
+
+export const hasWallet = () => !!(window as any).unisat;
+
+// Accounts the site is already allowed to see (no popup). Empty if the user has not connected before.
+export async function existingAccount(net: NetName): Promise<{ address: string; pubkeyHex: string } | null> {
+  const u = (window as any).unisat as Unisat | undefined;
+  if (!u?.getAccounts) return null;
+  try {
+    const [address] = await u.getAccounts();
+    if (!address) return null;
+    if (u.getChain) {
+      const c = await u.getChain();
+      if (c.enum !== UNISAT_CHAIN[net]) return null;
+    }
+    return { address, pubkeyHex: await u.getPublicKey() };
+  } catch {
+    return null;
+  }
+}
+
+// Tell the page when the user switches account or network in the wallet.
+export function onWalletChange(cb: (e: "accounts" | "network") => void) {
+  const u = (window as any).unisat as Unisat | undefined;
+  u?.on?.("accountsChanged", () => cb("accounts"));
+  u?.on?.("networkChanged", () => cb("network"));
 }

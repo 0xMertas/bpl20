@@ -17937,7 +17937,7 @@ init_buffer_shim();
 var bitcoin2 = __toESM(require_src2(), 1);
 var unisat = () => {
   const u = window.unisat;
-  if (!u) throw new Error("UniSat wallet not found. Install the UniSat extension and reload.");
+  if (!u) throw new Error("UniSat wallet not found. Install the UniSat extension from https://unisat.io/download, then reload this page.");
   return u;
 };
 async function connect(net) {
@@ -17976,6 +17976,27 @@ async function plainUtxos(net, address3) {
   const script = bitcoin2.address.toOutputScript(address3, networkFor(net)).toString("hex");
   const bad = await inscribedOutpoints();
   return (await addressUtxos(net, address3)).filter((c) => c.value >= 1e3 && !bad.has(`${c.txid}:${c.vout}`)).map((c) => ({ txid: c.txid, vout: c.vout, value: c.value, scriptPk: script }));
+}
+var hasWallet = () => !!window.unisat;
+async function existingAccount(net) {
+  const u = window.unisat;
+  if (!u?.getAccounts) return null;
+  try {
+    const [address3] = await u.getAccounts();
+    if (!address3) return null;
+    if (u.getChain) {
+      const c = await u.getChain();
+      if (c.enum !== UNISAT_CHAIN[net]) return null;
+    }
+    return { address: address3, pubkeyHex: await u.getPublicKey() };
+  } catch {
+    return null;
+  }
+}
+function onWalletChange(cb) {
+  const u = window.unisat;
+  u?.on?.("accountsChanged", () => cb("accounts"));
+  u?.on?.("networkChanged", () => cb("network"));
 }
 
 // src/app.ts
@@ -18028,15 +18049,27 @@ async function main() {
   document.title = cfg.siteName;
   $("title").textContent = cfg.siteName;
   $("net").textContent = cfg.network === "mainnet" ? "" : `TEST MODE (${cfg.network}). No real money.`;
+  const setMe = (w) => {
+    me = w;
+    $("connect").textContent = w ? w.address.slice(0, 8) + "..." + w.address.slice(-6) : "Connect UniSat";
+  };
   $("connect").onclick = async () => {
     try {
-      me = await connect(cfg.network);
-      $("connect").textContent = me.address.slice(0, 8) + "..." + me.address.slice(-6);
+      setMe(await connect(cfg.network));
       say("Wallet connected.");
     } catch (e) {
       say(e?.message ?? String(e), true);
     }
   };
+  if (!hasWallet()) {
+    $("status").innerHTML = 'UniSat wallet not found. <a href="https://unisat.io/download" target="_blank" rel="noopener">Install UniSat</a>, then reload this page.';
+  } else {
+    existingAccount(cfg.network).then((w) => w && setMe(w));
+    onWalletChange(async (what) => {
+      setMe(null);
+      say(what === "network" ? `Network changed. Press Connect UniSat to continue on ${cfg.network}.` : "Account changed. Press Connect UniSat to continue.");
+    });
+  }
   $("prepare").onclick = prepare;
   $("disclosure").innerHTML = (cfg.disclosure ?? []).map((t) => `<p>${t.replace(/</g, "&lt;")}</p>`).join("");
   const lots = await (await fetch("lots.json", { cache: "no-store" })).json();

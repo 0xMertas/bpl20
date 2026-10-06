@@ -17916,7 +17916,7 @@ init_buffer_shim();
 var bitcoin2 = __toESM(require_src2(), 1);
 var unisat = () => {
   const u = window.unisat;
-  if (!u) throw new Error("UniSat wallet not found. Install the UniSat extension and reload.");
+  if (!u) throw new Error("UniSat wallet not found. Install the UniSat extension from https://unisat.io/download, then reload this page.");
   return u;
 };
 async function connect(net) {
