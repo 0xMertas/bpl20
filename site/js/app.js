@@ -17870,7 +17870,7 @@ function readSignedListing(psbtB64, network) {
 }
 var VB = { p2wpkh: 68, p2tr: 58, out: 43, overhead: 11 };
 function estimateFee(buyerInputs, feeRate2) {
-  let vb = VB.overhead + VB.p2tr + 58 + 3 * VB.out;
+  let vb = VB.overhead + 58 + 3 * VB.out;
   for (const u of buyerInputs) vb += kind(import_buffer.Buffer.from(u.scriptPk, "hex")) === "p2tr" ? VB.p2tr : VB.p2wpkh;
   return Math.ceil(vb * feeRate2);
 }
@@ -18056,7 +18056,7 @@ async function claim(lot) {
     if (maxClaims() && await claimsUsedBy(me.address) >= maxClaims()) throw new Error(`Limit reached: ${maxClaims()} claims per wallet.`);
     say("Checking the lot is still available...");
     if (await isSpent(cfg.network, lot.utxo.txid, lot.utxo.vout)) throw new Error("Sorry, this lot was just sold.");
-    const [utxos, rate] = await Promise.all([plainUtxos(cfg.network, me.address), feeRate(cfg.network)]);
+    const [utxos, rate] = await Promise.all([plainUtxos(cfg.network, me.address), cfg.claimFeeRate ? Promise.resolve(cfg.claimFeeRate) : feeRate(cfg.network)]);
     const plan = buildBuyPsbt(lot, { ...me, utxos }, rate, net);
     const parts = lot.devFee !== void 0 ? `${lot.devFee} sats development fee + ${lot.price - lot.devFee} sats transfer cost` : `${lot.price} sats (includes the development fee)`;
     if (!confirm(`Pay ${parts} + ${plan.fee} sats Bitcoin network fee = ${plan.total} sats total, for ${lot.amt} ${lot.tick}?`)) {

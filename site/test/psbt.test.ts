@@ -78,7 +78,7 @@ for (const kind of ["p2wpkh", "p2tr"] as const) {
     const inSum = plan.psbt.data.inputs.reduce((a, i) => a + i.witnessUtxo!.value, 0);
     const outSum = tx.outs.reduce((a, o) => a + o.value, 0);
     assert.equal(inSum - outSum, plan.fee);
-    assert.ok(plan.fee / vsize >= 4.5 && plan.fee / vsize < 7, `fee rate sane: ${plan.fee / vsize}`);
+    assert.ok(plan.fee / vsize >= 4.9 && plan.fee / vsize < 5.6, `fee rate close to the 5 sat/vB asked: ${plan.fee / vsize}`);
   });
 }
 

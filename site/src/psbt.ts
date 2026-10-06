@@ -150,7 +150,7 @@ export type Buyer = {
 const VB = { p2wpkh: 68, p2tr: 58, out: 43, overhead: 11 };
 
 export function estimateFee(buyerInputs: OwnedUtxo[], feeRate: number): number {
-  let vb = VB.overhead + VB.p2tr /*dummy, worst case*/ + 58 /*seller input*/ + 3 * VB.out;
+  let vb = VB.overhead + 58 /*seller input*/ + 3 * VB.out; // buyerInputs already includes the dummy coin
   for (const u of buyerInputs) vb += kind(Buffer.from(u.scriptPk, "hex")) === "p2tr" ? VB.p2tr : VB.p2wpkh;
   return Math.ceil(vb * feeRate);
 }

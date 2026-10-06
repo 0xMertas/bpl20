@@ -45,7 +45,7 @@ async function claim(lot: Lot) {
     if (maxClaims() && (await claimsUsedBy(me.address)) >= maxClaims()) throw new Error(`Limit reached: ${maxClaims()} claims per wallet.`);
     say("Checking the lot is still available...");
     if (await isSpent(cfg.network, lot.utxo.txid, lot.utxo.vout)) throw new Error("Sorry, this lot was just sold.");
-    const [utxos, rate] = await Promise.all([plainUtxos(cfg.network, me.address), feeRate(cfg.network)]);
+    const [utxos, rate] = await Promise.all([plainUtxos(cfg.network, me.address), cfg.claimFeeRate ? Promise.resolve(cfg.claimFeeRate) : feeRate(cfg.network)]);
     const plan = buildBuyPsbt(lot, { ...me, utxos }, rate, net);
     const parts = lot.devFee !== undefined
       ? `${lot.devFee} sats development fee + ${lot.price - lot.devFee} sats transfer cost`
