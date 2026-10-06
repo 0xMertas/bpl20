@@ -23,3 +23,5 @@ a { color:var(--acc); }
 .how { color:var(--mut); padding-left:20px; } .how li { margin:6px 0; }
 .price-tok { font-size:13px; color:var(--mut); display:block; }
 h2 { font-size:18px; margin:28px 0 8px; }
+
+input[type=radio] { width:auto; display:inline-block; margin:0 8px 0 0; vertical-align:middle; }
