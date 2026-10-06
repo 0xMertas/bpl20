@@ -2,12 +2,13 @@
 // Your wallet signs; no key is ever typed here.
 import * as bitcoin from "bitcoinjs-lib";
 import { btcUsd, feeRate as fetchFee, getOutput, inscriptionKind, isSpent, type Config } from "./chain";
-import { fixedPrice, lotCostSats, suggestPrice } from "./pricing";
+import { DEFAULT_COST, fixedPrice, lotCostSats, suggestPrice } from "./pricing";
 import { SIGHASH_SINGLE_ACP, buildListingPsbt, lotFromSigned, networkFor, verifyListing, type Lot } from "./psbt";
 import { connect, newestInscriptions, unisat } from "./wallet";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 let cfg: Config;
+const costModel = () => cfg.lotCost ?? DEFAULT_COST;
 let me: { address: string; pubkeyHex: string } | null = null;
 const lines: string[] = [];
 const coinToId = new Map<string, string>(); // coin -> inscription id, from the wallet list
@@ -28,7 +29,7 @@ async function sign(): Promise<boolean> {
     if (!/^\d+$/.test(amt) || !Number.isInteger(price) || price <= 0) throw new Error("Check amount and price");
     const rate = Number($<HTMLInputElement>("rate").value);
     if (!(rate > 0)) throw new Error("Enter the fee rate (sat/vB) you paid for the lots, so the development fee can be worked out");
-    const devFee = Math.max(0, price - lotCostSats(rate)); // what is left of the price after your cost to prepare the lot
+    const devFee = Math.max(0, price - lotCostSats(rate, costModel())); // what is left of the price after your cost to prepare the lot
     const seen = new Set(lines.map((l) => JSON.parse(l).coin));
 
     const net = networkFor(cfg.network);
@@ -188,6 +189,7 @@ async function main() {
         Number($<HTMLInputElement>("rate").value),
         Number($<HTMLInputElement>("btc").value),
         Number($<HTMLInputElement>("profit").value),
+        costModel(),
       );
       suggested = r.price;
       $("suggest").textContent =
@@ -200,7 +202,7 @@ async function main() {
   let fixedSats = 0;
   const recalcFixed = () => {
     try {
-      const r = fixedPrice(Number($<HTMLInputElement>("fixed").value), Number($<HTMLInputElement>("rate").value), Number($<HTMLInputElement>("btc").value));
+      const r = fixedPrice(Number($<HTMLInputElement>("fixed").value), Number($<HTMLInputElement>("rate").value), Number($<HTMLInputElement>("btc").value), costModel());
       fixedSats = r.price;
       const warn = r.profit <= 0 ? " LOSS: fees are too high for this price, wait for a lower fee rate." : r.profitUsd < 0.5 ? " Low profit: wait for a lower fee rate if you can." : "";
       $("fixedinfo").textContent = `Price ${r.price.toLocaleString()} sats. Your cost ${r.cost.toLocaleString()} sats ($${r.costUsd.toFixed(2)}). You keep ${r.profit.toLocaleString()} sats ($${r.profitUsd.toFixed(2)}).${warn}`;

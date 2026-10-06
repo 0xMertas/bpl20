@@ -201,3 +201,12 @@ test("reads inscription content from a reveal transaction", () => {
   assert.equal(contentFromRevealTx(t.hex, "nonsense"), null);
   assert.equal(parseEnvelope(Buffer.from([0x51])), null);
 });
+
+import { lotCostSats as lotCost2, suggestPrice as suggest2 } from "../src/pricing";
+test("real UniSat inscribe-page cost model (mint order: 700 + 330 + 3150 = 4180 sats at 2 sat/vB)", () => {
+  const m = { vbytes: 350, postage: 330, serviceFee: 3150 };
+  assert.equal(lotCost2(2, m), 4180);
+  const r = suggest2(2, 85544, 1.2, m);
+  assert.equal(r.cost, 4180);
+  assert.equal(r.price, 4180 + 1403);
+});

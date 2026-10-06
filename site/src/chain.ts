@@ -2,7 +2,7 @@
 import { contentFromRevealTx } from "./inscription";
 
 export type NetName = "mainnet" | "testnet4" | "signet";
-export type Config = { network: NetName; tick: string; siteName: string; maxSupply?: string; disclosure?: string[]; showPrice?: boolean; blockedCoins?: string[] };
+export type Config = { network: NetName; tick: string; siteName: string; maxSupply?: string; disclosure?: string[]; showPrice?: boolean; blockedCoins?: string[]; lotCost?: { vbytes: number; postage: number; serviceFee: number } };
 
 const API: Record<NetName, string> = {
   mainnet: "https://mempool.space/api",

@@ -17858,20 +17858,21 @@ async function inscriptionKind(n, id) {
 init_buffer_shim();
 var INSCRIBE_VB = 350;
 var POSTAGE = 546;
-var lotCostSats = (feeRate2) => Math.ceil(INSCRIBE_VB * feeRate2) + POSTAGE;
+var DEFAULT_COST = { vbytes: INSCRIBE_VB, postage: POSTAGE, serviceFee: 0 };
+var lotCostSats = (feeRate2, m = DEFAULT_COST) => Math.ceil(m.vbytes * feeRate2) + m.postage + m.serviceFee;
 var usdToSats = (usd, btcUsd2) => Math.round(usd * 1e8 / btcUsd2);
 var satsToUsd = (sats, btcUsd2) => sats / 1e8 * btcUsd2;
-function suggestPrice(feeRate2, btcUsd2, profitUsd) {
+function suggestPrice(feeRate2, btcUsd2, profitUsd, m = DEFAULT_COST) {
   if (!(feeRate2 > 0) || !(btcUsd2 > 0) || !(profitUsd >= 0)) throw new Error("Enter positive fee rate, BTC price and profit");
-  const cost = lotCostSats(feeRate2);
+  const cost = lotCostSats(feeRate2, m);
   const profit = usdToSats(profitUsd, btcUsd2);
   const price = cost + profit;
   return { cost, profit, price, costUsd: satsToUsd(cost, btcUsd2), priceUsd: satsToUsd(price, btcUsd2) };
 }
-function fixedPrice(priceUsd, feeRate2, btcUsd2) {
+function fixedPrice(priceUsd, feeRate2, btcUsd2, m = DEFAULT_COST) {
   if (!(priceUsd > 0) || !(feeRate2 > 0) || !(btcUsd2 > 0)) throw new Error("Enter positive price, fee rate and BTC price");
   const price = usdToSats(priceUsd, btcUsd2);
-  const cost = lotCostSats(feeRate2);
+  const cost = lotCostSats(feeRate2, m);
   const profit = price - cost;
   return { price, cost, profit, profitUsd: satsToUsd(profit, btcUsd2), costUsd: satsToUsd(cost, btcUsd2) };
 }
@@ -18038,6 +18039,7 @@ async function newestInscriptions(max = 12) {
 // src/admin.ts
 var $ = (id) => document.getElementById(id);
 var cfg;
+var costModel = () => cfg.lotCost ?? DEFAULT_COST;
 var me = null;
 var lines = [];
 var coinToId = /* @__PURE__ */ new Map();
@@ -18056,7 +18058,7 @@ async function sign() {
     if (!/^\d+$/.test(amt) || !Number.isInteger(price) || price <= 0) throw new Error("Check amount and price");
     const rate = Number($("rate").value);
     if (!(rate > 0)) throw new Error("Enter the fee rate (sat/vB) you paid for the lots, so the development fee can be worked out");
-    const devFee = Math.max(0, price - lotCostSats(rate));
+    const devFee = Math.max(0, price - lotCostSats(rate, costModel()));
     const seen = new Set(lines.map((l) => JSON.parse(l).coin));
     const net = networkFor(cfg.network);
     const unverified = [];
@@ -18210,7 +18212,8 @@ async function main() {
       const r = suggestPrice(
         Number($("rate").value),
         Number($("btc").value),
-        Number($("profit").value)
+        Number($("profit").value),
+        costModel()
       );
       suggested = r.price;
       $("suggest").textContent = `Your cost ${r.cost.toLocaleString()} sats ($${r.costUsd.toFixed(2)}) + profit ${r.profit.toLocaleString()} sats = suggested price ${r.price.toLocaleString()} sats ($${r.priceUsd.toFixed(2)}). The buyer also pays their own network fee.`;
@@ -18222,7 +18225,7 @@ async function main() {
   let fixedSats = 0;
   const recalcFixed = () => {
     try {
-      const r = fixedPrice(Number($("fixed").value), Number($("rate").value), Number($("btc").value));
+      const r = fixedPrice(Number($("fixed").value), Number($("rate").value), Number($("btc").value), costModel());
       fixedSats = r.price;
       const warn = r.profit <= 0 ? " LOSS: fees are too high for this price, wait for a lower fee rate." : r.profitUsd < 0.5 ? " Low profit: wait for a lower fee rate if you can." : "";
       $("fixedinfo").textContent = `Price ${r.price.toLocaleString()} sats. Your cost ${r.cost.toLocaleString()} sats ($${r.costUsd.toFixed(2)}). You keep ${r.profit.toLocaleString()} sats ($${r.profitUsd.toFixed(2)}).${warn}`;

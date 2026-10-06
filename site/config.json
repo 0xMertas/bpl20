@@ -12,5 +12,10 @@
   "showPrice": true,
   "blockedCoins": [
     "e15794936ec9c2d8ae79288a72dde23052b2010328553b986bed73f94dc65772:0"
-  ]
+  ],
+  "lotCost": {
+    "vbytes": 350,
+    "postage": 330,
+    "serviceFee": 3150
+  }
 }
