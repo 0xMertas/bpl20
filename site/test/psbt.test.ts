@@ -130,7 +130,7 @@ test("build-lots CLI keeps valid lots and skips bad/duplicate ones", () => {
     JSON.stringify(bad),
   ].join("\n"));
   const out = join(dir, "lots.json");
-  execFileSync("npx", ["tsx", "scripts/build-lots.ts", f], { env: { ...process.env, LOTS_OUT: out, NETWORK: "testnet4" }, stdio: "pipe" });
+  execFileSync(process.execPath, [join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs"), "scripts/build-lots.ts", f], { env: { ...process.env, LOTS_OUT: out, NETWORK: "testnet4" }, stdio: "pipe" });
   const lots = JSON.parse(readFileSync(out, "utf8"));
   assert.equal(lots.length, 1);
   assert.equal(lots[0].price, 20000);
