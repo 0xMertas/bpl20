@@ -240,7 +240,7 @@ async function main() {
   };
   Promise.all([fetchFee(cfg.network === "mainnet" ? "mainnet" : cfg.network), btcUsd()])
     .then(([fee, usd]) => {
-      $<HTMLInputElement>("rate").value = String(fee);
+      $<HTMLInputElement>("rate").value = String(cfg.inscribeFeeRate ?? fee);
       $<HTMLInputElement>("btc").value = String(Math.round(usd));
       recalc();
       recalcFixed();

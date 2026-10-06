@@ -18262,7 +18262,7 @@ async function main() {
     if (suggested) $("price").value = String(suggested);
   };
   Promise.all([feeRate(cfg.network === "mainnet" ? "mainnet" : cfg.network), btcUsd()]).then(([fee, usd]) => {
-    $("rate").value = String(fee);
+    $("rate").value = String(cfg.inscribeFeeRate ?? fee);
     $("btc").value = String(Math.round(usd));
     recalc();
     recalcFixed();
