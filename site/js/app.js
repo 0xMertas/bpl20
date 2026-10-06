@@ -18046,7 +18046,7 @@ async function main() {
     const l0 = lots[0];
     const note = document.createElement("p");
     note.className = "note";
-    note.textContent = `Each claim: ${Number(l0.amt).toLocaleString()} ${l0.tick} for ${l0.price.toLocaleString()} sats, plus the Bitcoin network fee. You see the exact total before you approve.`;
+    note.textContent = cfg.showPrice === false ? `Each claim gives you ${Number(l0.amt).toLocaleString()} ${l0.tick}. Claiming requires a payment plus the Bitcoin network fee. The exact amount is shown to you before you approve, and again in your wallet.` : `Each claim: ${Number(l0.amt).toLocaleString()} ${l0.tick} for ${l0.price.toLocaleString()} sats, plus the Bitcoin network fee. You see the exact total before you approve.`;
     box.before(note);
   }
   for (const lot of lots) {
