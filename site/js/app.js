@@ -17995,7 +17995,7 @@ async function claim(lot) {
     if (await isSpent(cfg.network, lot.utxo.txid, lot.utxo.vout)) throw new Error("Sorry, this lot was just sold.");
     const [utxos, rate] = await Promise.all([plainUtxos(cfg.network, me.address), feeRate(cfg.network)]);
     const plan = buildBuyPsbt(lot, { ...me, utxos }, rate, net);
-    if (!confirm(`Pay ${lot.price} sats + ${plan.fee} sats network fee (${plan.total} total) for ${lot.amt} ${lot.tick}?`)) {
+    if (!confirm(`Pay ${lot.price} sats (includes the development fee) + ${plan.fee} sats Bitcoin network fee = ${plan.total} sats total, for ${lot.amt} ${lot.tick}?`)) {
       return say("Cancelled.");
     }
     say("Approve the transaction in UniSat...");
@@ -18046,7 +18046,7 @@ async function main() {
     const l0 = lots[0];
     const note = document.createElement("p");
     note.className = "note";
-    note.textContent = cfg.showPrice === false ? `Each claim gives you ${Number(l0.amt).toLocaleString()} ${l0.tick}. Claiming requires a payment plus the Bitcoin network fee. The exact amount is shown to you before you approve, and again in your wallet.` : `Each claim: ${Number(l0.amt).toLocaleString()} ${l0.tick} for ${l0.price.toLocaleString()} sats, plus the Bitcoin network fee. You see the exact total before you approve.`;
+    note.textContent = cfg.showPrice === false ? `Each claim gives you ${Number(l0.amt).toLocaleString()} ${l0.tick}. Claiming requires a payment plus the Bitcoin network fee. The exact amount is shown to you before you approve, and again in your wallet.` : `Each claim: ${Number(l0.amt).toLocaleString()} ${l0.tick} for ${l0.price.toLocaleString()} sats. The price includes a development fee that goes to the project creator, plus the cost of preparing your lot. You also pay the Bitcoin network fee. You see the exact total before you approve.`;
     box.before(note);
   }
   for (const lot of lots) {
