@@ -8,7 +8,8 @@
     "build": "esbuild src/app.ts src/admin.ts src/stats.ts --bundle --format=esm --target=es2020 --inject:./src/buffer-shim.ts --define:global=globalThis --outdir=js",
     "lots": "tsx scripts/build-lots.ts",
     "test": "tsx --test test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "package": "bash scripts/package.sh"
   },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^2.0.0",
